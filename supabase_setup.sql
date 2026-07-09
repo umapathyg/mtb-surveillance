@@ -89,8 +89,8 @@ who has the key can access the data — so keep it within your group. For strong
 Because it's a web app, there is nothing to install from an app store — you share a link.
 
 1. **Set up sync on your own phone first** (Sync tab → URL + key → Save & test → Connected ✓).
-2. On the Sync tab, tap **Share setup link**. Your phone's share sheet opens — send it to
-   each collector by WhatsApp, SMS, or email. (Or tap the link box to copy it.)
+2. On the Sync tab, tap **Share setup link** to send the link (WhatsApp/SMS/email), or tap
+   **Show QR code** → **Print poster** to print a scan-to-set-up sheet for the field office.
 3. Each collector opens the link on their phone, taps **Connect** when asked, and the app
    configures itself — no keys to type. They then tap the browser's **Add to Home Screen**
    to install it (Sync tab shows the steps).
