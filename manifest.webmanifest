@@ -1,21 +1,666 @@
-{
-  "name": "MTB Wastewater Surveillance — Hyderabad",
-  "short_name": "MTB Survey",
-  "description": "Field collection of wastewater samples for Mycobacterium tuberculosis surveillance: GPS, weather, flow and catchment metadata for population-normalised analysis.",
-  "id": "/mtb-surveillance/",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0b3a44",
-  "theme_color": "#0b3a44",
-  "categories": ["health", "science", "utilities"],
-  "lang": "en",
-  "dir": "ltr",
-  "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b3a44">
+<title>MTB Wastewater Surveillance — Hyderabad</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MTB Survey">
+<style>
+  :root{
+    --petrol:#0b3a44; --petrol-2:#12525f;
+    --surface:#f5f3ec; --card:#ffffff; --ink:#122025; --muted:#5c6f74; --line:#d9d5c8;
+    --signal:#1f9d6b; --signal-dim:#e3f3ec; --amber:#d98a2b; --amber-dim:#f6ead6; --alert:#b23a3a;
+    --pos:#c0392b; --neg:#1f9d6b; --pend:#8a949a;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+    --ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--ui);color:var(--ink);background:var(--surface);padding-bottom:76px;line-height:1.45}
+  header{position:sticky;top:0;z-index:20;background:var(--petrol);color:#eaf3f2;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+  header .mark{width:30px;height:30px;border-radius:7px;flex:0 0 auto;background:linear-gradient(135deg,var(--signal),var(--petrol-2));display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px;color:#fff}
+  header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.2px;line-height:1.1}
+  header .sub{font-size:11px;color:#9fc2c2;font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase}
+  header .status{margin-left:auto;display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:11px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+  .dot.ok{background:var(--signal);box-shadow:0 0 0 3px rgba(31,157,107,.2)}
+  .dot.warn{background:var(--amber)}
+  main{padding:14px 14px 0}
+  .view{display:none}.view.active{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .instrument{background:var(--petrol);color:#dfeceb;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 6px 18px rgba(11,58,68,.18)}
+  .instrument .row{display:flex;gap:10px;margin-bottom:10px}
+  .readout{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:9px 11px}
+  .readout .lbl{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:#8fb6b6;font-family:var(--mono)}
+  .readout .val{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:2px;color:#f2fbfa;word-break:break-all}
+  .readout .val small{font-size:11px;color:#9fc2c2;font-weight:400}
+  .acquire{width:100%;border:0;border-radius:11px;padding:14px;font-size:15px;font-weight:650;background:var(--signal);color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;transition:transform .05s,background .2s}
+  .acquire:active{transform:scale(.985)}.acquire.busy{background:var(--amber)}.acquire[disabled]{opacity:.6}
+  .weatherline{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-family:var(--mono);font-size:12px;color:#bcdad9}
+  .weatherline b{color:#f2fbfa;font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  .card>.head{display:flex;align-items:baseline;gap:8px;margin:-2px 0 12px}
+  .card>.head .n{font-family:var(--mono);font-size:11px;color:var(--amber);font-weight:700}
+  .card>.head h2{font-size:13px;margin:0;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid.one{grid-template-columns:1fr}
+  .field{display:flex;flex-direction:column;gap:5px}.field.span2{grid-column:1/-1}
+  label{font-size:12px;color:var(--muted);font-weight:600}
+  input,select,textarea{font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fcfbf7;color:var(--ink);width:100%}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--petrol-2);outline-offset:-1px;border-color:var(--petrol-2)}
+  input[readonly]{background:#eef2ee;color:var(--muted);font-family:var(--mono)}
+  textarea{resize:vertical;min-height:64px}
+  .hint{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .computed{background:var(--signal-dim);border:1px dashed var(--signal);border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:14px;color:#155e42}
+  .computed b{font-size:17px}
+  .save{width:100%;border:0;border-radius:12px;padding:16px;font-size:16px;font-weight:700;background:var(--petrol);color:#fff;cursor:pointer;margin-bottom:8px}
+  .save:active{transform:scale(.99)}
+  .rec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:10px;cursor:pointer}
+  .rec .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .rec .id{font-family:var(--mono);font-weight:700;font-size:13px;color:var(--petrol)}
+  .rec .badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .pill{font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+  .pill.type{background:var(--amber-dim);color:#8a5514}
+  .pill.pos{background:#fbe7e4;color:var(--pos)}
+  .pill.neg{background:var(--signal-dim);color:#155e42}
+  .pill.pend{background:#eef1f2;color:var(--pend)}
+  .rec .meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:2px 12px}
+  .rec .meta span b{color:var(--ink);font-weight:600}
+  .rec .foot{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .syncdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .syncdot.done{background:var(--signal)}.syncdot.pending{background:var(--amber)}
+  .empty{text-align:center;color:var(--muted);padding:40px 20px}.empty .big{font-size:34px;margin-bottom:8px}.empty p{font-size:14px;margin:4px 0}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .stat .v{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--petrol)}
+  .stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+  .btn-row{display:flex;gap:10px;margin-bottom:10px}
+  .btn{flex:1;border:0;border-radius:11px;padding:14px;font-size:14px;font-weight:650;cursor:pointer}
+  .btn.primary{background:var(--signal);color:#fff}.btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--petrol)}
+  .btn.danger{background:#fbf1f1;border:1px solid #e6c9c9;color:var(--alert)}
+  .btn[disabled]{opacity:.55}
+  .statusline{font-family:var(--mono);font-size:12px;padding:10px 12px;border-radius:10px;background:#eef2ee;color:var(--muted);margin-bottom:12px}
+  .statusline.ok{background:var(--signal-dim);color:#155e42}.statusline.err{background:#fbe7e4;color:var(--pos)}
+  nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  nav button{flex:1;border:0;background:none;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;position:relative}
+  nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+  nav button.active{color:var(--petrol)}nav button.active svg{stroke:var(--signal)}
+  nav .count{position:absolute;top:2px;right:calc(50% - 20px);background:var(--amber);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px;font-family:var(--mono)}
+  #toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90%;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#toast.err{background:var(--alert)}
+  /* modal */
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(10,20,24,.5);display:flex;align-items:flex-end;justify-content:center}
+  .sheet{background:var(--surface);width:100%;max-width:640px;max-height:92vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;animation:up .22s ease}
+  @keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+  .sheet .sh{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0}
+  .sheet .sh .id{font-family:var(--mono);font-weight:700;color:var(--petrol);font-size:15px}
+  .sheet .sh .x{margin-left:auto;border:0;background:#e7ebe6;width:32px;height:32px;border-radius:50%;font-size:18px;color:var(--muted);cursor:pointer}
+  .sheet .body{overflow:auto;padding:14px 16px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px;font-family:var(--mono);color:var(--muted);margin-bottom:14px}
+  .kv b{color:var(--ink);font-weight:600}
+  .sheet .foot{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line)}
+  .ctwrap{position:relative}
+  .ctwrap .ctnote{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mark">MTB</div>
+  <div><h1>Wastewater Surveillance</h1><div class="sub">Hyderabad · One Health</div></div>
+  <div class="status">
+    <span class="dot" id="gpsDot" title="GPS"></span>GPS
+    <span class="dot" id="syncDot" title="Sync" style="margin-left:8px"></span>SYNC
+  </div>
+</header>
+
+<main>
+  <!-- ============ COLLECT ============ -->
+  <section class="view active" id="v-collect">
+    <div class="instrument">
+      <div class="row">
+        <div class="readout"><div class="lbl">Latitude</div><div class="val" id="rLat">—</div></div>
+        <div class="readout"><div class="lbl">Longitude</div><div class="val" id="rLng">—</div></div>
+      </div>
+      <div class="row">
+        <div class="readout"><div class="lbl">Accuracy</div><div class="val" id="rAcc">—</div></div>
+        <div class="readout"><div class="lbl">Fix time</div><div class="val" id="rTime" style="font-size:14px">—</div></div>
+      </div>
+      <button class="acquire" id="btnAcquire">◎ Capture location &amp; weather</button>
+      <div class="weatherline" id="weatherLine" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <div class="head"><span class="n">01</span><h2>Sample identity</h2></div>
+      <div class="grid">
+        <div class="field span2"><label for="sampleId">Sample ID</label><input id="sampleId" type="text" autocomplete="off"></div>
+        <div class="field"><label for="siteName">Site name / code</label><input id="siteName" type="text" placeholder="e.g. Nala Kunta STP" autocomplete="off"></div>
+        <div class="field"><label for="siteType">Site type</label>
+          <select id="siteType">
+            <option value="STP inlet">STP — inlet</option><option value="STP outlet">STP — outlet</option>
+            <option value="Pumping station">Pumping station</option><option value="Open drain / nala">Open drain / nala</option>
+            <option value="Manhole">Manhole</option><option value="Hospital effluent">Hospital effluent</option>
+            <option value="Community drain">Community drain</option><option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field"><label for="zone">GHMC zone / ward</label><input id="zone" type="text" placeholder="Zone · Circle · Ward" autocomplete="off"></div>
+        <div class="field"><label for="pop">Catchment population</label><input id="pop" type="number" inputmode="numeric" placeholder="persons served"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head"><span class="n">02</span><h2>Wastewater parameters</h2></div>
+      <div class="grid">
+        <div class="field"><label for="flowSpeed">Flow speed (m/s)</label><input id="flowSpeed" type="number" step="0.01" inputmode="decimal" placeholder="0.00"></div>
+        <div class="field"><label for="flowDepth">Flow depth (cm)</label><input id="flowDepth" type="number" step="0.1" inputmode="decimal" placeholder="0.0"></div>
+        <div class="field"><label for="channelW">Channel width (cm)</label><input id="channelW" type="number" step="0.1" inputmode="decimal" placeholder="0.0"></div>
+        <div class="field"><label for="waterTemp">Water temp (°C)</label><input id="waterTemp" type="number" step="0.1" inputmode="decimal" placeholder="0.0"></div>
+        <div class="field"><label for="ph">pH</label><input id="ph" type="number" step="0.1" inputmode="decimal" placeholder="7.0"></div>
+        <div class="field"><label for="turbidity">Turbidity (NTU)</label><input id="turbidity" type="number" step="0.1" inputmode="decimal" placeholder="0.0"></div>
+        <div class="field span2" id="flowBox" style="display:none"><div class="computed">Estimated flow rate: <b id="flowRate">—</b> L/s &nbsp;·&nbsp; <span id="flowRateM">—</span> m³/day</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head"><span class="n">03</span><h2>Collection</h2></div>
+      <div class="grid">
+        <div class="field"><label for="method">Method</label>
+          <select id="method"><option>Grab</option><option>Composite (time)</option><option>Composite (flow)</option><option>Passive (Moore swab)</option></select>
+        </div>
+        <div class="field"><label for="volume">Volume (mL)</label><input id="volume" type="number" inputmode="numeric" placeholder="mL"></div>
+        <div class="field span2"><label for="collector">Collector</label><input id="collector" type="text" placeholder="Name / initials" autocomplete="off"></div>
+        <div class="field span2"><label for="notes">Field notes</label><textarea id="notes" placeholder="Rainfall in last 24h, odour, colour, obstructions, chain-of-custody…"></textarea></div>
+      </div>
+    </div>
+    <button class="save" id="btnSave">Save sample record</button>
+  </section>
+
+  <!-- ============ RECORDS ============ -->
+  <section class="view" id="v-records"><div id="recList"></div></section>
+
+  <!-- ============ EXPORT ============ -->
+  <section class="view" id="v-export">
+    <div class="card" id="installCard" style="display:none;border-color:var(--signal)">
+      <div class="head"><span class="n" style="color:var(--signal)">⤓</span><h2>Install app</h2></div>
+      <p class="hint" id="installText" style="margin:0 0 10px">Add to your home screen for a full-screen, offline field app with its own icon.</p>
+      <div class="btn-row" id="installBtnRow"><button class="btn primary" id="btnInstall">Add to home screen</button></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="stTotal">0</div><div class="k">Samples</div></div>
+      <div class="stat"><div class="v" id="stPos">0</div><div class="k">qPCR positive</div></div>
+      <div class="stat"><div class="v" id="stSites">0</div><div class="k">Distinct sites</div></div>
+      <div class="stat"><div class="v" id="stPop">0</div><div class="k">Pop. covered</div></div>
+    </div>
+    <div class="card">
+      <div class="head"><span class="n">↧</span><h2>Export &amp; backup</h2></div>
+      <div class="btn-row"><button class="btn primary" id="btnCsv">Download CSV</button><button class="btn ghost" id="btnJson">Backup JSON</button></div>
+      <div class="btn-row">
+        <label class="btn ghost" style="text-align:center" for="importFile">Restore JSON</label>
+        <input id="importFile" type="file" accept=".json" style="display:none">
+        <button class="btn danger" id="btnClear">Clear all</button>
+      </div>
+      <p class="hint" style="margin-top:6px">CSV includes GPS, weather, flow, catchment and qPCR lab columns — analysis-ready for per-capita normalisation.</p>
+    </div>
+  </section>
+
+  <!-- ============ SYNC ============ -->
+  <section class="view" id="v-sync">
+    <div class="statusline" id="syncStatus">Cloud sync not configured.</div>
+    <div class="card">
+      <div class="head"><span class="n">☁</span><h2>Cloud sync (Supabase)</h2></div>
+      <div class="grid one">
+        <div class="field"><label for="cfgUrl">Project URL</label><input id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off"></div>
+        <div class="field"><label for="cfgKey">API key (publishable or anon)</label><input id="cfgKey" type="password" placeholder="sb_publishable_… or eyJ…" autocomplete="off"></div>
+        <div class="field"><label for="cfgCollector">Your name (collector, saved on this device)</label><input id="cfgCollector" type="text" placeholder="e.g. Ramesh K" autocomplete="off"></div>
+        <div class="field"><label for="cfgAuto" style="display:flex;align-items:center;gap:8px;font-weight:600"><input id="cfgAuto" type="checkbox" style="width:auto" checked> Auto-sync each saved record when online</label></div>
+      </div>
+      <div class="btn-row" style="margin-top:6px"><button class="btn ghost" id="btnTest">Save &amp; test</button></div>
+      <p class="hint">In Supabase: <b>Settings → API Keys</b> → copy the <b>Publishable key</b> (sb_publishable_…). Older projects: use the <b>anon</b> key on the Legacy tab. Stored only on this device.</p>
+    </div>
+    <div class="card">
+      <div class="head"><span class="n">⇅</span><h2>Synchronise</h2></div>
+      <div class="stats" style="margin-bottom:12px">
+        <div class="stat"><div class="v" id="syPending">0</div><div class="k">Pending upload</div></div>
+        <div class="stat"><div class="v" id="syLast" style="font-size:14px">never</div><div class="k">Last sync</div></div>
+      </div>
+      <div class="btn-row"><button class="btn primary" id="btnSync">Sync now (push + pull)</button></div>
+      <p class="hint">Push sends new/edited records to Supabase; pull merges records added by other collectors. Local data is never overwritten by an older copy.</p>
+    </div>
+
+    <div class="card" id="shareCard" style="display:none">
+      <div class="head"><span class="n">👥</span><h2>Share with your field team</h2></div>
+      <p class="hint" style="margin:0 0 10px">Send this one-time setup link to each collector. When they open it on their phone and tap Connect, the app configures itself automatically — no keys to type.</p>
+      <div class="btn-row"><button class="btn primary" id="btnShare">Share setup link</button></div>
+      <input id="shareLink" type="text" readonly onclick="this.select()" style="font-family:var(--mono);font-size:11.5px" placeholder="Set up sync above first">
+      <p class="hint" style="margin-top:8px">This link contains your database key — send it only to your collectors (e.g. WhatsApp), never post it publicly.</p>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="active" data-view="collect" id="navCollect"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.3-7-11a7 7 0 0114 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Collect</button>
+  <button data-view="records" id="navRecords"><span class="count" id="navCount"></span><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Records</button>
+  <button data-view="export" id="navExport"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>Export</button>
+  <button data-view="sync" id="navSync"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 01-13.7 5.7M4 12A8 8 0 0117.7 6.3"/><path d="M17 3v3.5H13.5M7 21v-3.5H10.5"/></svg>Sync</button>
+</nav>
+
+<!-- record detail / lab-results modal -->
+<div class="modal" id="detail" style="display:none">
+  <div class="sheet">
+    <div class="sh"><span class="id" id="dTitle">—</span><button class="x" id="dClose">×</button></div>
+    <div class="body">
+      <div class="kv" id="dInfo"></div>
+      <div class="card" style="margin:0">
+        <div class="head"><span class="n">🧪</span><h2>Lab results — MTB qPCR</h2></div>
+        <div class="grid">
+          <div class="field span2"><label for="dLabId">Lab / accession ID</label><input id="dLabId" type="text" autocomplete="off"></div>
+          <div class="field"><label for="dTarget">Target gene</label>
+            <select id="dTarget"><option value="">—</option><option>IS6110</option><option>rpoB</option><option>hspX</option><option>16S rRNA</option><option>Other</option></select>
+          </div>
+          <div class="field"><label for="dResult">Result</label>
+            <select id="dResult"><option value="">Pending / not tested</option><option>Positive</option><option>Negative</option><option>Inconclusive</option></select>
+          </div>
+          <div class="field span2 ctwrap"><label for="dCt">qPCR Ct value</label><input id="dCt" type="number" step="0.01" inputmode="decimal" placeholder="e.g. 32.4">
+            <div class="ctnote" id="dCtNote">Lower Ct = higher target load. Leave blank if undetermined.</div>
+          </div>
+          <div class="field"><label for="dLabDate">Date analysed</label><input id="dLabDate" type="date"></div>
+          <div class="field"><label for="dAnalyst">Analyst</label><input id="dAnalyst" type="text" autocomplete="off"></div>
+          <div class="field span2"><label for="dLabNotes">Lab notes</label><textarea id="dLabNotes" placeholder="Assay, kit, replicates, inhibition, internal control Ct…"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><button class="btn danger" id="dDelete" style="flex:0 0 auto">Delete</button><button class="btn primary" id="dSave">Save lab result</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- storage: window.storage (Claude) → localStorage (standalone) → memory ---------- */
+  var mem={};
+  var store={
+    async get(k){
+      try{ if(window.storage){ var r=await window.storage.get(k); return (r&&r.value!=null)?r.value:null; } }catch(e){}
+      try{ var s=localStorage.getItem(k); return s!=null?s:null; }catch(e){}
+      return (mem[k]!=null?mem[k]:null);
+    },
+    async set(k,v){
+      mem[k]=v;
+      try{ if(window.storage){ await window.storage.set(k,v); return; } }catch(e){}
+      try{ localStorage.setItem(k,v); }catch(e){}
+    }
+  };
+  async function getJSON(k,d){ var s=await store.get(k); if(s==null) return d; try{return JSON.parse(s);}catch(e){return d;} }
+  async function setJSON(k,v){ await store.set(k,JSON.stringify(v)); }
+
+  var $=function(id){return document.getElementById(id);};
+  var records=[], config={url:"",key:"",auto:true}, deviceId="", lastFix=null, lastWeather=null, openId=null;
+
+  function uuid(){
+    if(window.crypto&&crypto.randomUUID){ try{return crypto.randomUUID();}catch(e){} }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);});
+  }
+  function toast(msg,isErr){ var t=$("toast"); t.textContent=msg; t.className="show"+(isErr?" err":""); clearTimeout(t._t); t._t=setTimeout(function(){t.className="";},2400); }
+  function setDot(id,cls){ $(id).className="dot "+cls; }
+  function pad(n){return (n<10?"0":"")+n;}
+  function todayStamp(){ var d=new Date(); return ""+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate()); }
+
+  /* ---------- init ---------- */
+  (async function init(){
+    records=await getJSON("mtb-samples",[]);
+    config=Object.assign({url:"",key:"",auto:true}, await getJSON("mtb-config",{}));
+    deviceId=await store.get("mtb-device"); if(!deviceId){ deviceId=uuid().slice(0,8); await store.set("mtb-device",deviceId); }
+    // migrate old records lacking id/sync fields
+    var changed=false;
+    records.forEach(function(r){ if(!r.id){ r.id=uuid(); changed=true; } if(!r.updatedAt){ r.updatedAt=r.savedAt||new Date().toISOString(); changed=true; } if(r.syncedAt===undefined){ r.syncedAt=null; changed=true; } });
+    if(changed) await setJSON("mtb-samples",records);
+    setDot("syncDot", config.url&&config.key ? "ok":"warn");
+    $("cfgUrl").value=config.url||""; $("cfgKey").value=config.key||""; $("cfgAuto").checked=config.auto!==false;
+    $("cfgCollector").value=config.collector||""; if(config.collector) $("collector").value=config.collector;
+    suggestId(); renderRecords(); renderStats(); renderSync();
+    if(!navigator.geolocation) setDot("gpsDot","warn");
+    maybePromptSetup();
+  })();
+
+  function suggestId(){
+    var t=todayStamp();
+    var n=records.filter(function(r){return (r.sampleId||"").indexOf("MTB-"+t)===0;}).length;
+    $("sampleId").value="MTB-"+t+"-"+pad(n+1);
+  }
+
+  /* ---------- GPS + weather ---------- */
+  $("btnAcquire").addEventListener("click",function(){
+    if(!navigator.geolocation){ toast("Geolocation not available",true); return; }
+    var btn=this; btn.classList.add("busy"); btn.disabled=true; btn.textContent="◎ Acquiring GPS fix…";
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var c=pos.coords;
+      lastFix={lat:c.latitude,lng:c.longitude,acc:c.accuracy,alt:c.altitude,ts:new Date(pos.timestamp).toISOString()};
+      $("rLat").textContent=c.latitude.toFixed(6); $("rLng").textContent=c.longitude.toFixed(6);
+      $("rAcc").innerHTML=Math.round(c.accuracy)+' <small>m</small>';
+      $("rTime").textContent=new Date(pos.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      setDot("gpsDot","ok"); fetchWeather(c.latitude,c.longitude,btn);
+    },function(err){
+      btn.classList.remove("busy"); btn.disabled=false; btn.textContent="◎ Capture location & weather";
+      setDot("gpsDot","warn"); toast("GPS error: "+err.message,true);
+    },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  });
+  function fetchWeather(lat,lng,btn){
+    btn.textContent="◎ Fetching weather…";
+    var url="https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lng+"&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&timezone=auto";
+    fetch(url).then(function(r){return r.json();}).then(function(d){
+      var c=d.current||{};
+      lastWeather={airTemp:c.temperature_2m,humidity:c.relative_humidity_2m,precip:c.precipitation,wind:c.wind_speed_10m};
+      var wl=$("weatherLine"); wl.style.display="flex";
+      wl.innerHTML='<span>Air <b>'+fmt(c.temperature_2m,'°C')+'</b></span><span>RH <b>'+fmt(c.relative_humidity_2m,'%')+'</b></span><span>Rain <b>'+fmt(c.precipitation,'mm')+'</b></span><span>Wind <b>'+fmt(c.wind_speed_10m,'km/h')+'</b></span>';
+      done();
+    }).catch(function(){ lastWeather=null; var wl=$("weatherLine"); wl.style.display="flex"; wl.innerHTML='Weather unavailable — GPS captured. Note conditions manually if needed.'; done(); });
+    function done(){ btn.classList.remove("busy"); btn.disabled=false; btn.textContent="◎ Re-capture location & weather"; toast("Location captured"); }
+  }
+  function fmt(v,u){ return (v===undefined||v===null)?"—":(v+(u||"")); }
+
+  ["flowSpeed","flowDepth","channelW"].forEach(function(id){ $(id).addEventListener("input",computeFlow); });
+  function computeFlow(){
+    var v=parseFloat($("flowSpeed").value), d=parseFloat($("flowDepth").value), w=parseFloat($("channelW").value);
+    if(v>0&&d>0&&w>0){ var q=v*(d/100)*(w/100); $("flowBox").style.display="block"; $("flowRate").textContent=(q*1000).toFixed(1); $("flowRateM").textContent=Math.round(q*86400).toLocaleString(); }
+    else $("flowBox").style.display="none";
+  }
+  function numOrNull(x){ x=parseFloat(x); return isNaN(x)?null:x; }
+
+  /* ---------- save new sample ---------- */
+  $("btnSave").addEventListener("click",async function(){
+    var id=$("sampleId").value.trim();
+    if(!id){ toast("Sample ID is required",true); return; }
+    if(!lastFix){ toast("Capture a GPS fix before saving",true); switchView("collect"); return; }
+    var v=parseFloat($("flowSpeed").value), d=parseFloat($("flowDepth").value), w=parseFloat($("channelW").value);
+    var now=new Date().toISOString();
+    var rec={
+      id:uuid(), sampleId:id, savedAt:now, updatedAt:now, syncedAt:null, deviceId:deviceId,
+      siteName:$("siteName").value.trim(), siteType:$("siteType").value, zone:$("zone").value.trim(), population:numOrNull($("pop").value),
+      lat:lastFix.lat, lng:lastFix.lng, gpsAccuracy:lastFix.acc, altitude:lastFix.alt, fixTime:lastFix.ts,
+      airTemp:lastWeather?lastWeather.airTemp:null, humidity:lastWeather?lastWeather.humidity:null, precip:lastWeather?lastWeather.precip:null, windSpeed:lastWeather?lastWeather.wind:null,
+      flowSpeed:numOrNull($("flowSpeed").value), flowDepth:numOrNull($("flowDepth").value), channelWidth:numOrNull($("channelW").value),
+      flowRateLps:(v>0&&d>0&&w>0)?+(v*(d/100)*(w/100)*1000).toFixed(2):null,
+      waterTemp:numOrNull($("waterTemp").value), pH:numOrNull($("ph").value), turbidity:numOrNull($("turbidity").value),
+      method:$("method").value, volume:numOrNull($("volume").value), collector:$("collector").value.trim(), notes:$("notes").value.trim(),
+      labSampleId:"", qpcrTarget:"", qpcrCt:null, qpcrResult:"", labDate:"", analyst:"", labNotes:""
+    };
+    records.unshift(rec); await setJSON("mtb-samples",records);
+    toast("Saved "+id); resetForm(); renderRecords(); renderStats(); renderSync();
+    if(config.auto!==false && config.url && config.key && navigator.onLine){ syncPush([rec]).then(function(ok){ if(ok){renderRecords();renderStats();renderSync();} }); }
+  });
+  function resetForm(){
+    ["siteName","zone","pop","flowSpeed","flowDepth","channelW","waterTemp","ph","turbidity","volume","notes"].forEach(function(id){$(id).value="";});
+    $("flowBox").style.display="none"; lastFix=null; lastWeather=null;
+    $("rLat").textContent="—";$("rLng").textContent="—";$("rAcc").textContent="—";$("rTime").textContent="—";
+    $("weatherLine").style.display="none"; $("btnAcquire").textContent="◎ Capture location & weather"; suggestId();
+  }
+
+  /* ---------- records list ---------- */
+  function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function resultPill(r){
+    if(r.qpcrResult==="Positive") return '<span class="pill pos">POS'+(r.qpcrCt!=null?' · Ct '+r.qpcrCt:'')+'</span>';
+    if(r.qpcrResult==="Negative") return '<span class="pill neg">NEG</span>';
+    if(r.qpcrResult==="Inconclusive") return '<span class="pill pend">INCONC</span>';
+    return '<span class="pill pend">qPCR pending</span>';
+  }
+  function renderRecords(){
+    var el=$("recList");
+    if(!records.length){ el.innerHTML='<div class="empty"><div class="big">◎</div><p><b>No samples yet</b></p><p>Capture a GPS fix on the Collect tab to log your first wastewater sample.</p></div>'; return; }
+    el.innerHTML=records.map(function(r){
+      var when=new Date(r.savedAt).toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      var synced=r.syncedAt && (!r.updatedAt || r.syncedAt>=r.updatedAt);
+      return '<div class="rec" data-id="'+r.id+'">'+
+        '<div class="top"><span class="id">'+esc(r.sampleId)+'</span><span class="badges"><span class="pill type">'+esc(r.siteType)+'</span>'+resultPill(r)+'</span></div>'+
+        '<div class="meta">'+
+          '<span><b>'+esc(r.siteName||'—')+'</b></span><span>'+when+'</span>'+
+          '<span>'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</span>'+
+          '<span>±'+Math.round(r.gpsAccuracy)+'m'+(r.flowRateLps?' · '+r.flowRateLps+' L/s':'')+'</span>'+
+        '</div>'+
+        '<div class="foot"><span class="syncdot '+(synced?'done':'pending')+'"></span>'+(synced?'synced':'not synced')+' · tap to add lab result</div>'+
+      '</div>';
+    }).join("");
+    Array.prototype.forEach.call(el.querySelectorAll(".rec"),function(c){ c.addEventListener("click",function(){ openDetail(this.getAttribute("data-id")); }); });
+  }
+
+  /* ---------- detail / lab modal ---------- */
+  function recById(id){ for(var i=0;i<records.length;i++) if(records[i].id===id) return records[i]; return null; }
+  function openDetail(id){
+    var r=recById(id); if(!r) return; openId=id;
+    $("dTitle").textContent=r.sampleId;
+    var maps="https://www.google.com/maps?q="+r.lat+","+r.lng;
+    $("dInfo").innerHTML=
+      row("Site",esc(r.siteName||'—')+' · '+esc(r.siteType))+
+      row("Ward",esc(r.zone||'—'))+
+      row("Coords",'<a href="'+maps+'" target="_blank" rel="noopener">'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</a> (±'+Math.round(r.gpsAccuracy)+'m)')+
+      row("Collected",new Date(r.savedAt).toLocaleString())+
+      row("Population",r.population?Number(r.population).toLocaleString():'—')+
+      row("Flow",r.flowRateLps!=null?(r.flowRateLps+' L/s'):'—')+
+      row("Weather",(r.airTemp!=null?r.airTemp+'°C':'—')+(r.humidity!=null?' · '+r.humidity+'% RH':''))+
+      row("Method",esc(r.method||'—')+(r.volume?' · '+r.volume+' mL':''));
+    $("dLabId").value=r.labSampleId||""; $("dTarget").value=r.qpcrTarget||""; $("dCt").value=r.qpcrCt!=null?r.qpcrCt:"";
+    $("dResult").value=r.qpcrResult||""; $("dLabDate").value=r.labDate||""; $("dAnalyst").value=r.analyst||""; $("dLabNotes").value=r.labNotes||"";
+    $("detail").style.display="flex";
+  }
+  function row(k,v){ return '<b>'+k+'</b><span>'+v+'</span>'; }
+  function closeDetail(){ $("detail").style.display="none"; openId=null; }
+  $("dClose").addEventListener("click",closeDetail);
+  $("detail").addEventListener("click",function(e){ if(e.target===this) closeDetail(); });
+  $("dSave").addEventListener("click",async function(){
+    var r=recById(openId); if(!r) return;
+    r.labSampleId=$("dLabId").value.trim(); r.qpcrTarget=$("dTarget").value; r.qpcrCt=numOrNull($("dCt").value);
+    r.qpcrResult=$("dResult").value; r.labDate=$("dLabDate").value||""; r.analyst=$("dAnalyst").value.trim(); r.labNotes=$("dLabNotes").value.trim();
+    r.updatedAt=new Date().toISOString(); r.syncedAt=null;
+    await setJSON("mtb-samples",records); closeDetail(); renderRecords(); renderStats(); renderSync(); toast("Lab result saved");
+    if(config.auto!==false && config.url && config.key && navigator.onLine){ syncPush([r]).then(function(ok){ if(ok){renderRecords();renderStats();renderSync();} }); }
+  });
+  $("dDelete").addEventListener("click",async function(){
+    var r=recById(openId); if(!r) return;
+    if(!confirm("Delete "+r.sampleId+" from this device? (This does not delete it from the cloud.)")) return;
+    records=records.filter(function(x){return x.id!==openId;}); await setJSON("mtb-samples",records);
+    closeDetail(); renderRecords(); renderStats(); renderSync(); toast("Deleted locally");
+  });
+
+  /* ---------- stats ---------- */
+  function renderStats(){
+    $("stTotal").textContent=records.length;
+    var sites={},pop=0,pos=0;
+    records.forEach(function(r){ if(r.siteName) sites[r.siteName.toLowerCase()]=1; if(r.population) pop+=Number(r.population); if(r.qpcrResult==="Positive") pos++; });
+    $("stPos").textContent=pos; $("stSites").textContent=Object.keys(sites).length;
+    $("stPop").textContent=pop>=1000?(pop/1000).toFixed(pop>=100000?0:1)+"k":pop;
+    var pending=records.filter(isPending).length;
+    var nc=$("navCount"); if(pending>0){ nc.textContent=pending; nc.style.display="flex"; } else nc.style.display="none";
+  }
+  function isPending(r){ return !(r.syncedAt && (!r.updatedAt || r.syncedAt>=r.updatedAt)); }
+
+  /* ---------- CSV / JSON ---------- */
+  var COLS=[
+    ["sampleId","Sample_ID"],["savedAt","Saved_At"],["fixTime","GPS_Fix_Time"],
+    ["siteName","Site_Name"],["siteType","Site_Type"],["zone","Zone_Ward"],["population","Catchment_Population"],
+    ["lat","Latitude"],["lng","Longitude"],["gpsAccuracy","GPS_Accuracy_m"],["altitude","Altitude_m"],
+    ["airTemp","Air_Temp_C"],["humidity","Humidity_pct"],["precip","Precip_mm"],["windSpeed","Wind_kmh"],
+    ["flowSpeed","Flow_Speed_ms"],["flowDepth","Flow_Depth_cm"],["channelWidth","Channel_Width_cm"],["flowRateLps","Flow_Rate_Lps"],
+    ["waterTemp","Water_Temp_C"],["pH","pH"],["turbidity","Turbidity_NTU"],
+    ["method","Method"],["volume","Volume_mL"],["collector","Collector"],["notes","Notes"],
+    ["labSampleId","Lab_Sample_ID"],["qpcrTarget","qPCR_Target"],["qpcrCt","qPCR_Ct"],["qpcrResult","qPCR_Result"],
+    ["labDate","Lab_Date"],["analyst","Analyst"],["labNotes","Lab_Notes"],["id","Record_UUID"]
+  ];
+  function csvCell(v){ if(v===null||v===undefined) return ""; v=String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+  $("btnCsv").addEventListener("click",function(){
+    if(!records.length){ toast("Nothing to export",true); return; }
+    var head=COLS.map(function(c){return c[1];}).join(",");
+    var rows=records.map(function(r){ return COLS.map(function(c){return csvCell(r[c[0]]);}).join(","); });
+    download("MTB_samples_"+todayStamp()+".csv","text/csv;charset=utf-8",[head].concat(rows).join("\n")); toast("CSV exported ("+records.length+" rows)");
+  });
+  $("btnJson").addEventListener("click",function(){ if(!records.length){ toast("Nothing to back up",true); return; } download("MTB_backup_"+todayStamp()+".json","application/json",JSON.stringify(records,null,2)); toast("Backup saved"); });
+  $("importFile").addEventListener("change",function(e){
+    var f=e.target.files[0]; if(!f) return; var rd=new FileReader();
+    rd.onload=async function(){ try{ var data=JSON.parse(rd.result); if(!Array.isArray(data)) throw 0;
+      var ids={}; records.forEach(function(r){ids[r.id]=1;}); var added=0;
+      data.forEach(function(r){ if(!r.id) r.id=uuid(); if(!ids[r.id]){ records.push(r); ids[r.id]=1; added++; } });
+      records.sort(function(a,b){return (b.savedAt||"").localeCompare(a.savedAt||"");});
+      await setJSON("mtb-samples",records); renderRecords(); renderStats(); renderSync(); toast("Restored "+added+" new records");
+    }catch(err){ toast("Invalid backup file",true); } };
+    rd.readAsText(f); e.target.value="";
+  });
+  $("btnClear").addEventListener("click",async function(){
+    if(!records.length){ toast("Already empty"); return; }
+    if(confirm("Delete ALL "+records.length+" local records? Export first if unsure. (Cloud copies remain.)")){ records=[]; await setJSON("mtb-samples",records); renderRecords(); renderStats(); renderSync(); suggestId(); toast("Local records cleared"); }
+  });
+  function download(name,type,content){ var blob=new Blob([content],{type:type}), url=URL.createObjectURL(blob); var a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(url);},1000); }
+
+  /* ---------- Supabase sync ---------- */
+  function apiBase(){ return (config.url||"").replace(/\/+$/,"")+"/rest/v1/samples"; }
+  function headers(extra){ return Object.assign({apikey:config.key,Authorization:"Bearer "+config.key,"Content-Type":"application/json"}, extra||{}); }
+  var MAP=[
+    ["id","id"],["sampleId","sample_id"],["savedAt","saved_at"],["updatedAt","updated_at"],["fixTime","fix_time"],
+    ["siteName","site_name"],["siteType","site_type"],["zone","zone_ward"],["population","catchment_population"],
+    ["lat","latitude"],["lng","longitude"],["gpsAccuracy","gps_accuracy_m"],["altitude","altitude_m"],
+    ["airTemp","air_temp_c"],["humidity","humidity_pct"],["precip","precip_mm"],["windSpeed","wind_kmh"],
+    ["flowSpeed","flow_speed_ms"],["flowDepth","flow_depth_cm"],["channelWidth","channel_width_cm"],["flowRateLps","flow_rate_lps"],
+    ["waterTemp","water_temp_c"],["pH","ph"],["turbidity","turbidity_ntu"],
+    ["method","method"],["volume","volume_ml"],["collector","collector"],["notes","notes"],
+    ["labSampleId","lab_sample_id"],["qpcrTarget","qpcr_target"],["qpcrCt","qpcr_ct"],["qpcrResult","qpcr_result"],
+    ["labDate","lab_date"],["analyst","analyst"],["labNotes","lab_notes"],["deviceId","device_id"]
+  ];
+  var NUMERIC={population:1,lat:1,lng:1,gpsAccuracy:1,altitude:1,airTemp:1,humidity:1,precip:1,windSpeed:1,flowSpeed:1,flowDepth:1,channelWidth:1,flowRateLps:1,waterTemp:1,pH:1,turbidity:1,volume:1,qpcrCt:1};
+  var DATEISH={savedAt:1,updatedAt:1,fixTime:1,labDate:1};
+  function toRow(rec){ var o={}; MAP.forEach(function(m){ var v=rec[m[0]]; if(NUMERIC[m[0]]){ v=(v===""||v==null||isNaN(v))?null:Number(v); } else if(DATEISH[m[0]]){ v=v?v:null; } else { v=(v===""||v==null)?null:v; } o[m[1]]=v; }); return o; }
+  function fromRow(row){ var rec={}; MAP.forEach(function(m){ rec[m[0]]=row[m[1]]; }); if(rec.labDate&&rec.labDate.length>10) rec.labDate=rec.labDate.slice(0,10); rec.syncedAt=new Date().toISOString(); return rec; }
+
+  async function syncPush(list){
+    if(!config.url||!config.key){ return false; }
+    var rows=list.map(toRow);
+    if(!rows.length) return true;
+    try{
+      var res=await fetch(apiBase()+"?on_conflict=id",{ method:"POST", headers:headers({Prefer:"resolution=merge-duplicates,return=minimal"}), body:JSON.stringify(rows) });
+      if(!res.ok){ var msg=await safeText(res); setSyncStatus("Push failed ("+res.status+"): "+msg,true); return false; }
+      var now=new Date().toISOString(); list.forEach(function(r){ r.syncedAt=now; });
+      await setJSON("mtb-samples",records); return true;
+    }catch(e){ setSyncStatus("Push error: "+(e.message||e)+" (offline?)",true); return false; }
+  }
+  async function syncPull(){
+    if(!config.url||!config.key){ return false; }
+    try{
+      var res=await fetch(apiBase()+"?select=*&order=updated_at.desc",{ headers:headers() });
+      if(!res.ok){ var msg=await safeText(res); setSyncStatus("Pull failed ("+res.status+"): "+msg,true); return false; }
+      var remote=await res.json(); var byId={}; records.forEach(function(r){byId[r.id]=r;}); var added=0,updated=0;
+      remote.forEach(function(row){ var inc=fromRow(row); var cur=byId[inc.id];
+        if(!cur){ records.push(inc); byId[inc.id]=inc; added++; }
+        else if(inc.updatedAt && (!cur.updatedAt || inc.updatedAt>cur.updatedAt)){ Object.assign(cur,inc); updated++; }
+      });
+      records.sort(function(a,b){return (b.savedAt||"").localeCompare(a.savedAt||"");});
+      await setJSON("mtb-samples",records);
+      setSyncStatus("Pulled: "+added+" new, "+updated+" updated.");
+      return true;
+    }catch(e){ setSyncStatus("Pull error: "+(e.message||e)+" (offline?)",true); return false; }
+  }
+  async function safeText(res){ try{ var t=await res.text(); return t.slice(0,140); }catch(e){ return ""; } }
+
+  $("btnSync").addEventListener("click",async function(){
+    if(!config.url||!config.key){ toast("Enter your Supabase URL & key first",true); return; }
+    this.disabled=true; this.textContent="Syncing…";
+    var pending=records.filter(isPending);
+    var okPush=await syncPush(pending);
+    var okPull=await syncPull();
+    if(okPush&&okPull){ config.lastSync=new Date().toISOString(); await setJSON("mtb-config",config); setSyncStatus("Synced. "+records.filter(isPending).length+" pending.",false,true); toast("Sync complete"); }
+    renderRecords(); renderStats(); renderSync();
+    this.disabled=false; this.textContent="Sync now (push + pull)";
+  });
+
+  $("btnTest").addEventListener("click",async function(){
+    config.url=$("cfgUrl").value.trim(); config.key=$("cfgKey").value.trim(); config.auto=$("cfgAuto").checked; config.collector=$("cfgCollector").value.trim();
+    await setJSON("mtb-config",config); setDot("syncDot", config.url&&config.key?"ok":"warn");
+    if(config.collector) $("collector").value=config.collector; renderSync();
+    if(!config.url||!config.key){ setSyncStatus("Saved. Enter both URL and key to enable sync."); return; }
+    this.disabled=true; this.textContent="Testing…";
+    try{
+      var res=await fetch(apiBase()+"?select=id&limit=1",{ headers:headers() });
+      if(res.ok){ setSyncStatus("Connected ✓ — table reachable. Ready to sync.",false,true); toast("Connected"); }
+      else if(res.status===404){ setSyncStatus("Connected, but table 'samples' not found. Run the SQL from README / supabase_setup.sql.",true); }
+      else if(res.status===401||res.status===403){ setSyncStatus("Key rejected ("+res.status+"). Re-copy the Publishable key from Supabase → Settings → API Keys.",true); }
+      else { setSyncStatus("Reachable but returned "+res.status+": "+(await safeText(res)),true); }
+    }catch(e){ setSyncStatus("Could not reach project: "+(e.message||e),true); }
+    this.disabled=false; this.textContent="Save & test";
+  });
+
+  function setSyncStatus(msg,isErr,isOk){ var el=$("syncStatus"); el.textContent=msg; el.className="statusline"+(isErr?" err":(isOk?" ok":"")); }
+
+  /* ---------- team setup sharing (one-tap link) ---------- */
+  function b64urlEncode(str){ var b=btoa(unescape(encodeURIComponent(str))); return b.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  function b64urlDecode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; return decodeURIComponent(escape(atob(s))); }
+  function setupLink(){ return location.href.split('#')[0]+'#setup='+b64urlEncode(JSON.stringify({url:config.url,key:config.key})); }
+  function parseHashSetup(){
+    var h=location.hash||'', p='#setup=';
+    if(h.indexOf(p)!==0) return null;
+    try{ var o=JSON.parse(b64urlDecode(h.slice(p.length))); if(o&&o.url&&o.key) return o; }catch(e){}
+    return null;
+  }
+  async function maybePromptSetup(){
+    var incoming=parseHashSetup(); if(!incoming) return;
+    history.replaceState(null,'',location.href.split('#')[0]);
+    if(config.url===incoming.url && config.key===incoming.key){ switchView('sync'); return; }
+    if(confirm('Connect this device to the team MTB Survey database?')){
+      config.url=incoming.url; config.key=incoming.key; await setJSON('mtb-config',config);
+      $("cfgUrl").value=config.url; $("cfgKey").value=config.key; setDot("syncDot","ok");
+      renderSync(); switchView('sync'); toast('Connected to team database');
+      setSyncStatus('Connected ✓ — tap “Sync now” to load existing records.',false,true);
+    }
+  }
+  $("btnShare").addEventListener("click",async function(){
+    if(!config.url||!config.key){ toast("Set up sync first",true); return; }
+    var link=setupLink(); $("shareLink").value=link;
+    if(navigator.share){ try{ await navigator.share({title:'MTB Survey app setup',text:'Open this to set up the MTB Wastewater Survey app on your phone:',url:link}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+    try{ await navigator.clipboard.writeText(link); toast("Setup link copied — paste into WhatsApp"); }catch(e){ $("shareLink").focus(); $("shareLink").select(); toast("Long-press the link to copy"); }
+  });
+  function renderSync(){
+    var configured=!!(config.url&&config.key);
+    $("shareCard").style.display=configured?"block":"none";
+    if(configured) $("shareLink").value=setupLink();
+    var pending=records.filter(isPending).length; $("syPending").textContent=pending;
+    $("syLast").textContent=config.lastSync?new Date(config.lastSync).toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):"never";
+    if(!config.url||!config.key){ setSyncStatus("Cloud sync not configured — add your Supabase URL and anon key below."); }
+    else if($("syncStatus").textContent.indexOf("Cloud sync not configured")===0){ setSyncStatus(pending+" record(s) pending upload."); }
+  }
+
+  /* ---------- nav ---------- */
+  function switchView(v){
+    ["collect","records","export","sync"].forEach(function(name){
+      $("v-"+name).classList.toggle("active",name===v);
+      $("nav"+name.charAt(0).toUpperCase()+name.slice(1)).classList.toggle("active",name===v);
+    });
+    if(v==="records") renderRecords(); if(v==="export") renderStats(); if(v==="sync") renderSync();
+    window.scrollTo(0,0);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){ b.addEventListener("click",function(){ switchView(this.getAttribute("data-view")); }); });
+  window.switchView=switchView;
+})();
+</script>
+
+<script>
+/* ---------- PWA: service worker + install prompt ---------- */
+(function(){
+  "use strict";
+  if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('./sw.js').catch(function(e){ console.log('SW registration failed:',e); }); }); }
+  var deferred=null, card=document.getElementById('installCard'), btn=document.getElementById('btnInstall'),
+      btnRow=document.getElementById('installBtnRow'), txt=document.getElementById('installText'), ua=navigator.userAgent||'',
+      isiOS=/iphone|ipad|ipod/i.test(ua)||(/Macintosh/.test(ua)&&'ontouchend' in document),
+      standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; if(card) card.style.display='block'; });
+  if(btn) btn.addEventListener('click',function(){ if(!deferred) return; deferred.prompt(); deferred.userChoice.then(function(){ deferred=null; if(card) card.style.display='none'; }); });
+  window.addEventListener('appinstalled',function(){ if(card) card.style.display='none'; });
+  if(isiOS && !standalone && card){ card.style.display='block'; if(btnRow) btnRow.style.display='none'; if(txt) txt.innerHTML='On iPhone or iPad: tap the <b>Share</b> button, then choose <b>Add to Home Screen</b> to install for offline field use.'; }
+})();
+</script>
+</body>
+</html>
