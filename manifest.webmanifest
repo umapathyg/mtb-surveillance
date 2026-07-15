@@ -154,6 +154,9 @@
     <div class="card">
       <div class="head"><span class="n">01</span><h2>Sample identity</h2></div>
       <div class="grid">
+        <div class="field span2"><label for="arm">Arm</label>
+          <select id="arm"><option>Arm-1</option><option>Arm-2</option><option>Arm-3</option></select>
+        </div>
         <div class="field span2"><label for="sampleId">Sample ID</label><input id="sampleId" type="text" autocomplete="off"></div>
         <div class="field"><label for="siteName">Site name / code</label><input id="siteName" type="text" placeholder="e.g. Nala Kunta STP" autocomplete="off"></div>
         <div class="field"><label for="siteType">Site type</label>
@@ -2714,7 +2717,7 @@ try{window.qrcode=qrcode;}catch(e){}
     var v=parseFloat($("flowSpeed").value), d=parseFloat($("flowDepth").value), w=parseFloat($("channelW").value);
     var now=new Date().toISOString();
     var rec={
-      id:uuid(), sampleId:id, savedAt:now, updatedAt:now, syncedAt:null, deviceId:deviceId,
+      id:uuid(), sampleId:id, savedAt:now, updatedAt:now, syncedAt:null, deviceId:deviceId, arm:$("arm").value,
       siteName:$("siteName").value.trim(), siteType:$("siteType").value, zone:$("zone").value.trim(), population:numOrNull($("pop").value),
       lat:lastFix.lat, lng:lastFix.lng, gpsAccuracy:lastFix.acc, altitude:lastFix.alt, fixTime:lastFix.ts,
       airTemp:lastWeather?lastWeather.airTemp:null, humidity:lastWeather?lastWeather.humidity:null, precip:lastWeather?lastWeather.precip:null, windSpeed:lastWeather?lastWeather.wind:null,
@@ -2750,7 +2753,7 @@ try{window.qrcode=qrcode;}catch(e){}
       var when=new Date(r.savedAt).toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
       var synced=r.syncedAt && (!r.updatedAt || r.syncedAt>=r.updatedAt);
       return '<div class="rec" data-id="'+r.id+'">'+
-        '<div class="top"><span class="id">'+esc(r.sampleId)+'</span><span class="badges"><span class="pill type">'+esc(r.siteType)+'</span>'+resultPill(r)+'</span></div>'+
+        '<div class="top"><span class="id">'+esc(r.sampleId)+'</span><span class="badges">'+(r.arm?'<span class="pill" style="background:#dde7ea;color:#0b3a44">'+esc(r.arm)+'</span>':'')+'<span class="pill type">'+esc(r.siteType)+'</span>'+resultPill(r)+'</span></div>'+
         '<div class="meta">'+
           '<span><b>'+esc(r.siteName||'—')+'</b></span><span>'+when+'</span>'+
           '<span>'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</span>'+
@@ -2769,6 +2772,7 @@ try{window.qrcode=qrcode;}catch(e){}
     $("dTitle").textContent=r.sampleId;
     var maps="https://www.google.com/maps?q="+r.lat+","+r.lng;
     $("dInfo").innerHTML=
+      row("Arm",esc(r.arm||'—'))+
       row("Site",esc(r.siteName||'—')+' · '+esc(r.siteType))+
       row("Ward",esc(r.zone||'—'))+
       row("Coords",'<a href="'+maps+'" target="_blank" rel="noopener">'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</a> (±'+Math.round(r.gpsAccuracy)+'m)')+
@@ -2814,7 +2818,7 @@ try{window.qrcode=qrcode;}catch(e){}
 
   /* ---------- CSV / JSON ---------- */
   var COLS=[
-    ["sampleId","Sample_ID"],["savedAt","Saved_At"],["fixTime","GPS_Fix_Time"],
+    ["sampleId","Sample_ID"],["arm","Arm"],["savedAt","Saved_At"],["fixTime","GPS_Fix_Time"],
     ["siteName","Site_Name"],["siteType","Site_Type"],["zone","Zone_Ward"],["population","Catchment_Population"],
     ["lat","Latitude"],["lng","Longitude"],["gpsAccuracy","GPS_Accuracy_m"],["altitude","Altitude_m"],
     ["airTemp","Air_Temp_C"],["humidity","Humidity_pct"],["precip","Precip_mm"],["windSpeed","Wind_kmh"],
@@ -2852,7 +2856,7 @@ try{window.qrcode=qrcode;}catch(e){}
   function apiBase(){ return (config.url||"").replace(/\/+$/,"")+"/rest/v1/samples"; }
   function headers(extra){ return Object.assign({apikey:config.key,Authorization:"Bearer "+config.key,"Content-Type":"application/json"}, extra||{}); }
   var MAP=[
-    ["id","id"],["sampleId","sample_id"],["savedAt","saved_at"],["updatedAt","updated_at"],["fixTime","fix_time"],
+    ["id","id"],["sampleId","sample_id"],["arm","arm"],["savedAt","saved_at"],["updatedAt","updated_at"],["fixTime","fix_time"],
     ["siteName","site_name"],["siteType","site_type"],["zone","zone_ward"],["population","catchment_population"],
     ["lat","latitude"],["lng","longitude"],["gpsAccuracy","gps_accuracy_m"],["altitude","altitude_m"],
     ["airTemp","air_temp_c"],["humidity","humidity_pct"],["precip","precip_mm"],["windSpeed","wind_kmh"],
