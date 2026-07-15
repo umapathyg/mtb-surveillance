@@ -8,8 +8,8 @@
 
 <!-- PWA -->
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -109,6 +109,17 @@
   .sheet .foot{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line)}
   .ctwrap{position:relative}
   .ctwrap .ctnote{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+  .dashbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .dashtitle{font-size:15px;margin:0;color:var(--petrol)}
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kpi .kv{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--petrol)}
+  .kpi .kk{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+  .dtable{width:100%;border-collapse:collapse;font-size:12.5px}
+  .dtable th{text-align:left;color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid var(--line)}
+  .dtable td{padding:6px;border-bottom:1px solid #eef0ec;font-family:var(--mono)}
+  .dtable td:first-child{font-family:var(--ui);font-weight:600}
+  .leaflet-container{font-family:var(--ui)}
   #qrHolder svg{width:min(260px,72vw);height:auto;display:block;margin:0 auto}
   #printArea{display:none}
   @media print{
@@ -202,6 +213,30 @@
   <!-- ============ RECORDS ============ -->
   <section class="view" id="v-records"><div id="recList"></div></section>
 
+  <!-- ============ DASHBOARD ============ -->
+  <section class="view" id="v-dashboard">
+    <div class="dashbar">
+      <div><h2 class="dashtitle">Daily overview</h2><div class="hint" id="dashStatus">—</div></div>
+      <button class="btn ghost" id="btnDashRefresh" style="flex:0 0 auto;max-width:120px">↻ Refresh</button>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="kv" id="kToday">0</div><div class="kk">Samples today</div></div>
+      <div class="kpi"><div class="kv" id="kPos">0</div><div class="kk">qPCR positive</div></div>
+      <div class="kpi"><div class="kv" id="kPositivity">—</div><div class="kk">Positivity %</div></div>
+      <div class="kpi"><div class="kv" id="kPending">0</div><div class="kk">Lab pending</div></div>
+    </div>
+    <div class="card"><div class="head"><span class="n">📈</span><h2>Last 14 days</h2></div>
+      <div id="dashTrend"></div>
+      <div class="hint" style="margin-top:6px"><span style="color:#12525f">■</span> samples &nbsp; <span style="color:#c0392b">■</span> positives</div>
+    </div>
+    <div class="card"><div class="head"><span class="n">🗺️</span><h2>Sampling map</h2></div>
+      <div id="dashMap" style="height:260px;border-radius:10px;overflow:hidden;background:#e8ece8"></div>
+      <div class="hint" style="margin-top:6px"><span style="color:#c0392b">●</span> positive &nbsp; <span style="color:#1f9d6b">●</span> negative &nbsp; <span style="color:#8a949a">●</span> pending</div>
+    </div>
+    <div class="card"><div class="head"><span class="n">▦</span><h2>By Arm</h2></div><div id="dashArm"></div></div>
+    <div class="card"><div class="head"><span class="n">▦</span><h2>Top sites</h2></div><div id="dashSites"></div></div>
+  </section>
+
   <!-- ============ EXPORT ============ -->
   <section class="view" id="v-export">
     <div class="card" id="installCard" style="display:none;border-color:var(--signal)">
@@ -264,6 +299,7 @@
 <nav>
   <button class="active" data-view="collect" id="navCollect"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.3-7-11a7 7 0 0114 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Collect</button>
   <button data-view="records" id="navRecords"><span class="count" id="navCount"></span><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Records</button>
+  <button data-view="dashboard" id="navDashboard"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Stats</button>
   <button data-view="export" id="navExport"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>Export</button>
   <button data-view="sync" id="navSync"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 01-13.7 5.7M4 12A8 8 0 0117.7 6.3"/><path d="M17 3v3.5H13.5M7 21v-3.5H10.5"/></svg>Sync</button>
 </nav>
@@ -2986,14 +3022,113 @@ try{window.qrcode=qrcode;}catch(e){}
 
   /* ---------- nav ---------- */
   function switchView(v){
-    ["collect","records","export","sync"].forEach(function(name){
+    ["collect","records","dashboard","export","sync"].forEach(function(name){
       $("v-"+name).classList.toggle("active",name===v);
       $("nav"+name.charAt(0).toUpperCase()+name.slice(1)).classList.toggle("active",name===v);
     });
-    if(v==="records") renderRecords(); if(v==="export") renderStats(); if(v==="sync") renderSync();
+    if(v==="records") renderRecords(); if(v==="export") renderStats(); if(v==="sync") renderSync(); if(v==="dashboard") refreshDashboard();
     window.scrollTo(0,0);
   }
   Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){ b.addEventListener("click",function(){ switchView(this.getAttribute("data-view")); }); });
+  /* ---------- dashboard / stats ---------- */
+  var mapObj=null, mapMarkers=null;
+  function localDay(d){ var x=new Date(d); return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate()); }
+  function setDashStatus(m){ $("dashStatus").textContent=m; }
+  function dashMetrics(){
+    var today=localDay(new Date()), tCount=0, pos=0, neg=0;
+    records.forEach(function(r){
+      if(localDay(r.savedAt)===today) tCount++;
+      if(r.qpcrResult==='Positive') pos++; else if(r.qpcrResult==='Negative') neg++;
+    });
+    var pend=records.filter(function(r){ return !r.qpcrResult; }).length;
+    var tested=pos+neg;
+    return { today:tCount, pos:pos, neg:neg, pend:pend, positivity: tested? Math.round(1000*pos/tested)/10 : null };
+  }
+  function renderDashboard(){
+    var m=dashMetrics();
+    $("kToday").textContent=m.today; $("kPos").textContent=m.pos;
+    $("kPositivity").textContent=(m.positivity==null?'—':m.positivity+'%'); $("kPending").textContent=m.pend;
+    $("dashTrend").innerHTML=trendSVG();
+    $("dashArm").innerHTML=groupTable('arm',['Arm','Samples','Pos','Pos %']);
+    $("dashSites").innerHTML=siteTable();
+    renderMap();
+  }
+  function trendSVG(){
+    var today=new Date(); today.setHours(0,0,0,0);
+    var days=[]; for(var i=13;i>=0;i--){ var d=new Date(today); d.setDate(d.getDate()-i); days.push({key:localDay(d),d:new Date(d),n:0,p:0}); }
+    var idx={}; days.forEach(function(x){idx[x.key]=x;});
+    records.forEach(function(r){ var k=localDay(r.savedAt); if(idx[k]){ idx[k].n++; if(r.qpcrResult==='Positive') idx[k].p++; } });
+    var maxN=1; days.forEach(function(x){ if(x.n>maxN) maxN=x.n; });
+    var W=320,H=130,padX=14,padT=10,padB=22,plotH=H-padT-padB,gap=(W-padX*2)/14,bw=gap*0.62,bars='';
+    days.forEach(function(x,i){
+      var xx=padX+i*gap+(gap-bw)/2, h=plotH*(x.n/maxN), y=padT+plotH-h;
+      bars+='<rect x="'+xx.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2" fill="#12525f"/>';
+      if(x.p>0){ var ph=plotH*(x.p/maxN); bars+='<rect x="'+xx.toFixed(1)+'" y="'+(padT+plotH-ph).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+ph.toFixed(1)+'" rx="2" fill="#c0392b"/>'; }
+    });
+    function lbl(d){ return d.getDate()+'/'+(d.getMonth()+1); }
+    var labels='<text x="'+padX+'" y="'+(H-6)+'" font-size="9" fill="#5c6f74" font-family="monospace">'+lbl(days[0].d)+'</text>'+
+               '<text x="'+(W-padX)+'" y="'+(H-6)+'" font-size="9" fill="#5c6f74" font-family="monospace" text-anchor="end">'+lbl(days[13].d)+'</text>';
+    return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-height:150px">'+bars+labels+'</svg>';
+  }
+  function groupTable(field,headers){
+    var g={}; records.forEach(function(r){ var k=r[field]||'—'; if(!g[k]) g[k]={n:0,p:0,t:0}; g[k].n++; if(r.qpcrResult==='Positive'){g[k].p++;g[k].t++;} else if(r.qpcrResult==='Negative') g[k].t++; });
+    var keys=Object.keys(g).sort(); if(!keys.length) return '<div class="hint">No data yet.</div>';
+    var rows=keys.map(function(k){ var x=g[k]; var pct=x.t?(Math.round(1000*x.p/x.t)/10+'%'):'—'; return '<tr><td>'+esc(k)+'</td><td>'+x.n+'</td><td>'+x.p+'</td><td>'+pct+'</td></tr>'; }).join('');
+    return '<table class="dtable"><thead><tr>'+headers.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+  function siteTable(){
+    var g={}; records.forEach(function(r){ var k=r.siteName||'—'; if(!g[k]) g[k]={n:0,p:0}; g[k].n++; if(r.qpcrResult==='Positive') g[k].p++; });
+    var keys=Object.keys(g).sort(function(a,b){return g[b].n-g[a].n;}).slice(0,8);
+    if(!keys.length) return '<div class="hint">No data yet.</div>';
+    var rows=keys.map(function(k){ return '<tr><td>'+esc(k)+'</td><td>'+g[k].n+'</td><td>'+g[k].p+'</td></tr>'; }).join('');
+    return '<table class="dtable"><thead><tr><th>Site</th><th>Samples</th><th>Pos</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+  function loadLeaflet(cb){
+    if(window.L){ cb(); return; }
+    if(window._lfLoading){ window._lfCbs.push(cb); return; }
+    window._lfLoading=true; window._lfCbs=[cb];
+    var done=function(err){ (window._lfCbs||[]).forEach(function(f){try{f(err);}catch(e){}}); window._lfCbs=[]; };
+    var css=document.createElement('link'); css.rel='stylesheet'; css.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    s.onload=function(){ done(); }; s.onerror=function(){ done(new Error('leaflet failed')); }; document.head.appendChild(s);
+  }
+  function renderMap(){
+    var el=$("dashMap");
+    var pts=records.filter(function(r){ return typeof r.lat==='number' && typeof r.lng==='number' && !isNaN(r.lat) && !isNaN(r.lng); });
+    loadLeaflet(function(err){
+      if(err || !window.L){ el.innerHTML='<div class="hint" style="padding:24px;text-align:center">Map needs an internet connection. Your coordinates are safe in Records and CSV.</div>'; return; }
+      if(!pts.length){ el.innerHTML='<div class="hint" style="padding:24px;text-align:center">No located samples yet.</div>'; return; }
+      if(!mapObj){
+        el.innerHTML='';
+        mapObj=L.map(el).setView([pts[0].lat,pts[0].lng],11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapObj);
+        mapMarkers=L.layerGroup().addTo(mapObj);
+      }
+      mapMarkers.clearLayers();
+      var bounds=[];
+      pts.forEach(function(r){
+        var color=r.qpcrResult==='Positive'?'#c0392b':(r.qpcrResult==='Negative'?'#1f9d6b':'#8a949a');
+        L.circleMarker([r.lat,r.lng],{radius:7,color:'#fff',weight:1.5,fillColor:color,fillOpacity:.9})
+          .bindPopup('<b>'+esc(r.sampleId)+'</b><br>'+esc(r.siteName||'')+'<br>'+esc(r.qpcrResult||'pending')).addTo(mapMarkers);
+        bounds.push([r.lat,r.lng]);
+      });
+      if(bounds.length>1){ try{ mapObj.fitBounds(bounds,{padding:[30,30]}); }catch(e){} }
+      setTimeout(function(){ try{ mapObj.invalidateSize(); }catch(e){} },120);
+    });
+  }
+  async function refreshDashboard(){
+    renderDashboard();
+    if(config.url && config.key && navigator.onLine){
+      setDashStatus('Refreshing from cloud…');
+      var ok=await syncPull();
+      renderDashboard();
+      setDashStatus(ok ? ('Updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})) : 'Showing saved data (cloud unavailable)');
+    } else {
+      setDashStatus(config.url&&config.key ? 'Offline — showing saved data' : 'This device only — set up Sync for team-wide data');
+    }
+  }
+  $("btnDashRefresh").addEventListener("click", refreshDashboard);
+
   window.switchView=switchView;
 })();
 </script>

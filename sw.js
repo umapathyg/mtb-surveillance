@@ -1,5 +1,5 @@
 /* MTB Wastewater Surveillance — offline-first service worker (root-icon layout) */
-const CACHE = 'mtb-cache-v7';
+const CACHE = 'mtb-cache-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -12,7 +12,6 @@ const ASSETS = [
   './favicon-32.png'
 ];
 
-// Pre-cache the app shell. Uses allSettled so one missing file never aborts the install.
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
@@ -33,8 +32,8 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;          // weather/Supabase → network
-  if (req.mode === 'navigate') {                            // always serve app shell offline
+  if (url.origin !== self.location.origin) return;          // weather / Supabase / map tiles → network
+  if (req.mode === 'navigate') {
     event.respondWith(caches.match('./index.html').then((r) => r || fetch(req)));
     return;
   }
