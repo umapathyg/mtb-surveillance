@@ -1,5 +1,5 @@
 /* MTB Wastewater Surveillance — offline-first service worker (root-icon layout) */
-const CACHE = 'mtb-cache-v8';
+const CACHE = 'mtb-cache-v9';
 const ASSETS = [
   './',
   './index.html',
