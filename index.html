@@ -165,20 +165,19 @@
     <div class="card">
       <div class="head"><span class="n">01</span><h2>Sample identity</h2></div>
       <div class="grid">
-        <div class="field span2"><label for="arm">Arm</label>
-          <select id="arm"><option>Arm-1</option><option>Arm-2</option><option>Arm-3</option></select>
+        <div class="field span2"><label for="zone">Zone</label>
+          <select id="zone"><option value="">— Select zone —</option><option>Boduppal</option><option>Peerzadiguda</option><option>Pocharam</option></select>
         </div>
         <div class="field span2"><label for="sampleId">Sample ID</label><input id="sampleId" type="text" autocomplete="off"></div>
-        <div class="field"><label for="siteName">Site name / code</label><input id="siteName" type="text" placeholder="e.g. Nala Kunta STP" autocomplete="off"></div>
+        <div class="field span2"><label for="siteName">Site name</label>
+          <select id="siteName"><option value="">Select a zone first</option></select>
+        </div>
+        <div class="field span2" id="siteOtherWrap" style="display:none"><label for="siteOther">Other site name / code</label><input id="siteOther" type="text" placeholder="Type the site not in the list" autocomplete="off"></div>
         <div class="field"><label for="siteType">Site type</label>
           <select id="siteType">
-            <option value="STP inlet">STP — inlet</option><option value="STP outlet">STP — outlet</option>
-            <option value="Pumping station">Pumping station</option><option value="Open drain / nala">Open drain / nala</option>
-            <option value="Manhole">Manhole</option><option value="Hospital effluent">Hospital effluent</option>
-            <option value="Community drain">Community drain</option><option value="Other">Other</option>
+            <option value="">—</option><option>Closed manhole</option><option>Open drain</option><option>Nullah</option><option>Other</option>
           </select>
         </div>
-        <div class="field"><label for="zone">GHMC zone / ward</label><input id="zone" type="text" placeholder="Zone · Circle · Ward" autocomplete="off"></div>
         <div class="field"><label for="pop">Catchment population</label><input id="pop" type="number" inputmode="numeric" placeholder="persons served"></div>
       </div>
     </div>
@@ -233,7 +232,7 @@
       <div id="dashMap" style="height:260px;border-radius:10px;overflow:hidden;background:#e8ece8"></div>
       <div class="hint" style="margin-top:6px"><span style="color:#c0392b">●</span> positive &nbsp; <span style="color:#1f9d6b">●</span> negative &nbsp; <span style="color:#8a949a">●</span> pending</div>
     </div>
-    <div class="card"><div class="head"><span class="n">▦</span><h2>By Arm</h2></div><div id="dashArm"></div></div>
+    <div class="card"><div class="head"><span class="n">▦</span><h2>By Zone</h2></div><div id="dashArm"></div></div>
     <div class="card"><div class="head"><span class="n">▦</span><h2>Top sites</h2></div><div id="dashSites"></div></div>
   </section>
 
@@ -2725,6 +2724,31 @@ try{window.qrcode=qrcode;}catch(e){}
     $("sampleId").value="MTB-"+t+"-"+pad(n+1);
   }
 
+  /* ---------- zone → site (dependent dropdowns from the site register) ---------- */
+  var SITES={"Boduppal":[{id:"BU_1_a2",type:"Closed manhole"},{id:"BU_11_a3",type:"Closed manhole"},{id:"BU_12_a1",type:"Open drain"},{id:"BU_14_a1",type:"Closed manhole"},{id:"BU_15_a1",type:"Closed manhole"},{id:"BU_17.1_a1",type:"Open drain"},{id:"BU_17.2_a1",type:"Closed manhole"},{id:"BU_2.1_a2",type:"Open drain"},{id:"BU_2.2_a2",type:"Open drain"},{id:"BU_2.4_a2",type:"Closed manhole"},{id:"BU_20.1_a1",type:"Nullah"},{id:"BU_20.2_a1",type:"Open drain"},{id:"BU_23_a1",type:"Open drain"},{id:"BU_24_a3-1",type:"Nullah"},{id:"BU_3_a1",type:"Closed manhole"},{id:"BU_3.2_a1",type:"Open drain"},{id:"BU_7_a2",type:"Nullah"},{id:"BU_9_a1",type:"Closed manhole"}],"Peerzadiguda":[{id:"PZ_1_a3",type:"Open drain"},{id:"PZ_1.2_a3",type:"Closed manhole"},{id:"PZ_12_a2",type:"Closed manhole"},{id:"PZ_15_a3",type:"Closed manhole"},{id:"PZ_16_a2",type:"Closed manhole"},{id:"PZ_17_a1",type:"Open drain"},{id:"PZ_18_a3",type:"Closed manhole"},{id:"PZ_19_a1",type:"Open drain"},{id:"PZ_20_a2",type:"Open drain"},{id:"PZ_24.2_a3",type:"Closed manhole"},{id:"PZ_26_a3",type:"Open drain"},{id:"PZ_3_a2",type:"Closed manhole"},{id:"PZ_4.2_a2",type:"Open drain"},{id:"PZ_4.3_a2",type:"Open drain"},{id:"PZ_5_a2",type:"Open drain"},{id:"PZ_5.2_a2",type:"Closed manhole"},{id:"PZ_6.1_a3",type:"Nullah"},{id:"PZ_6.2_a3",type:"Open drain"},{id:"PZ_7_a1",type:"Open drain"},{id:"PZ_8_a2",type:"Nullah"},{id:"PZ_9_a1",type:"Nullah"}],"Pocharam":[{id:"PO_1_a2",type:"Open drain"},{id:"PO_10.1_a2",type:"Open drain"},{id:"PO_10.2_a3",type:"Closed manhole"},{id:"PO_11.1_a2",type:"Open drain"},{id:"PO_12.1_a3-1",type:"Closed manhole"},{id:"PO_12.2_a3-1",type:"Open drain"},{id:"PO_13_a2",type:"Open drain"},{id:"PO_15.1_a2",type:"Open drain"},{id:"PO_2.1_a1",type:"Nullah"},{id:"PO_2.2_a1",type:"Nullah"},{id:"PO_3.1_a2",type:"Open drain"},{id:"PO_3.2_a2-3",type:"Open drain"},{id:"PO_4.2_a2",type:"Closed manhole"}]};
+  function esc2(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function populateSites(zone){
+    var sel=$("siteName"), opts;
+    if(zone && SITES[zone]){
+      opts='<option value="">— Select site —</option>';
+      SITES[zone].forEach(function(s){ opts+='<option value="'+esc2(s.id)+'" data-type="'+esc2(s.type)+'">'+esc2(s.id)+'</option>'; });
+    } else {
+      opts='<option value="">Select a zone first</option>';
+    }
+    opts+='<option value="__other__">Other — type it in…</option>';
+    sel.innerHTML=opts;
+    toggleSiteOther(false);
+  }
+  function toggleSiteOther(show){ var w=$("siteOtherWrap"); if(!w) return; w.style.display=show?"block":"none"; if(!show) $("siteOther").value=""; }
+  $("zone").addEventListener("change",function(){ populateSites(this.value); $("siteType").value=""; });
+  $("siteName").addEventListener("change",function(){
+    if(this.value==="__other__"){ toggleSiteOther(true); $("siteType").value=""; setTimeout(function(){$("siteOther").focus();},50); return; }
+    toggleSiteOther(false);
+    var opt=this.options[this.selectedIndex];
+    var t=opt?opt.getAttribute("data-type"):"";
+    if(t){ $("siteType").value=t; }
+  });
+
   /* ---------- GPS + weather ---------- */
   $("btnAcquire").addEventListener("click",function(){
     if(!navigator.geolocation){ toast("Geolocation not available",true); return; }
@@ -2771,8 +2795,8 @@ try{window.qrcode=qrcode;}catch(e){}
     var v=parseFloat($("flowSpeed").value), d=parseFloat($("flowDepth").value), w=parseFloat($("channelW").value);
     var now=new Date().toISOString();
     var rec={
-      id:uuid(), sampleId:id, savedAt:now, updatedAt:now, syncedAt:null, deviceId:deviceId, arm:$("arm").value,
-      siteName:$("siteName").value.trim(), siteType:$("siteType").value, zone:$("zone").value.trim(), population:numOrNull($("pop").value),
+      id:uuid(), sampleId:id, savedAt:now, updatedAt:now, syncedAt:null, deviceId:deviceId,
+      siteName:($("siteName").value==="__other__"?$("siteOther").value.trim():$("siteName").value), siteType:$("siteType").value, zone:$("zone").value, population:numOrNull($("pop").value),
       lat:lastFix.lat, lng:lastFix.lng, gpsAccuracy:lastFix.acc, altitude:lastFix.alt, fixTime:lastFix.ts,
       airTemp:lastWeather?lastWeather.airTemp:null, humidity:lastWeather?lastWeather.humidity:null, precip:lastWeather?lastWeather.precip:null, windSpeed:lastWeather?lastWeather.wind:null,
       flowSpeed:numOrNull($("flowSpeed").value), flowDepth:numOrNull($("flowDepth").value), channelWidth:numOrNull($("channelW").value),
@@ -2786,7 +2810,8 @@ try{window.qrcode=qrcode;}catch(e){}
     if(config.auto!==false && config.url && config.key && isSignedIn() && navigator.onLine){ syncPush([rec]).then(function(ok){ if(ok){renderRecords();renderStats();renderSync();} }); }
   });
   function resetForm(){
-    ["siteName","zone","pop","flowSpeed","flowDepth","channelW","waterTemp","ph","turbidity","volume","notes"].forEach(function(id){$(id).value="";});
+    ["siteName","pop","flowSpeed","flowDepth","channelW","waterTemp","ph","turbidity","volume","notes"].forEach(function(id){$(id).value="";});
+    $("siteType").value=""; populateSites($("zone").value); $("siteName").value="";
     $("flowBox").style.display="none"; lastFix=null; lastWeather=null;
     $("rLat").textContent="—";$("rLng").textContent="—";$("rAcc").textContent="—";$("rTime").textContent="—";
     $("weatherLine").style.display="none"; $("btnAcquire").textContent="◎ Capture location & weather"; suggestId();
@@ -2807,7 +2832,7 @@ try{window.qrcode=qrcode;}catch(e){}
       var when=new Date(r.savedAt).toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
       var synced=r.syncedAt && (!r.updatedAt || r.syncedAt>=r.updatedAt);
       return '<div class="rec" data-id="'+r.id+'">'+
-        '<div class="top"><span class="id">'+esc(r.sampleId)+'</span><span class="badges">'+(r.arm?'<span class="pill" style="background:#dde7ea;color:#0b3a44">'+esc(r.arm)+'</span>':'')+'<span class="pill type">'+esc(r.siteType)+'</span>'+resultPill(r)+'</span></div>'+
+        '<div class="top"><span class="id">'+esc(r.sampleId)+'</span><span class="badges">'+(r.zone?'<span class="pill" style="background:#dde7ea;color:#0b3a44">'+esc(r.zone)+'</span>':'')+'<span class="pill type">'+esc(r.siteType)+'</span>'+resultPill(r)+'</span></div>'+
         '<div class="meta">'+
           '<span><b>'+esc(r.siteName||'—')+'</b></span><span>'+when+'</span>'+
           '<span>'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</span>'+
@@ -2826,9 +2851,8 @@ try{window.qrcode=qrcode;}catch(e){}
     $("dTitle").textContent=r.sampleId;
     var maps="https://www.google.com/maps?q="+r.lat+","+r.lng;
     $("dInfo").innerHTML=
-      row("Arm",esc(r.arm||'—'))+
+      row("Zone",esc(r.zone||r.arm||'—'))+
       row("Site",esc(r.siteName||'—')+' · '+esc(r.siteType))+
-      row("Ward",esc(r.zone||'—'))+
       row("Coords",'<a href="'+maps+'" target="_blank" rel="noopener">'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</a> (±'+Math.round(r.gpsAccuracy)+'m)')+
       row("Collected",new Date(r.savedAt).toLocaleString())+
       row("Population",r.population?Number(r.population).toLocaleString():'—')+
@@ -2873,7 +2897,7 @@ try{window.qrcode=qrcode;}catch(e){}
   /* ---------- CSV / JSON ---------- */
   var COLS=[
     ["sampleId","Sample_ID"],["arm","Arm"],["savedAt","Saved_At"],["fixTime","GPS_Fix_Time"],
-    ["siteName","Site_Name"],["siteType","Site_Type"],["zone","Zone_Ward"],["population","Catchment_Population"],
+    ["siteName","Site_Name"],["siteType","Site_Type"],["zone","Zone"],["population","Catchment_Population"],
     ["lat","Latitude"],["lng","Longitude"],["gpsAccuracy","GPS_Accuracy_m"],["altitude","Altitude_m"],
     ["airTemp","Air_Temp_C"],["humidity","Humidity_pct"],["precip","Precip_mm"],["windSpeed","Wind_kmh"],
     ["flowSpeed","Flow_Speed_ms"],["flowDepth","Flow_Depth_cm"],["channelWidth","Channel_Width_cm"],["flowRateLps","Flow_Rate_Lps"],
@@ -3120,7 +3144,7 @@ try{window.qrcode=qrcode;}catch(e){}
     $("kToday").textContent=m.today; $("kPos").textContent=m.pos;
     $("kPositivity").textContent=(m.positivity==null?'—':m.positivity+'%'); $("kPending").textContent=m.pend;
     $("dashTrend").innerHTML=trendSVG();
-    $("dashArm").innerHTML=groupTable('arm',['Arm','Samples','Pos','Pos %']);
+    $("dashArm").innerHTML=groupTable('zone',['Zone','Samples','Pos','Pos %']);
     $("dashSites").innerHTML=siteTable();
     renderMap();
   }
