@@ -119,6 +119,8 @@
   .dtable th{text-align:left;color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid var(--line)}
   .dtable td{padding:6px;border-bottom:1px solid #eef0ec;font-family:var(--mono)}
   .dtable td:first-child{font-family:var(--ui);font-weight:600}
+  .mapmode{border:0;background:#f0f3ef;color:var(--muted);font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer;font-family:var(--ui)}
+  .mapmode.active{background:var(--petrol);color:#fff}
   .leaflet-container{font-family:var(--ui)}
   #qrHolder svg{width:min(260px,72vw);height:auto;display:block;margin:0 auto}
   #printArea{display:none}
@@ -168,11 +170,11 @@
         <div class="field span2"><label for="zone">Zone</label>
           <select id="zone"><option value="">— Select zone —</option><option>Boduppal</option><option>Peerzadiguda</option><option>Pocharam</option></select>
         </div>
-        <div class="field span2"><label for="sampleId">Sample ID</label><input id="sampleId" type="text" autocomplete="off"></div>
         <div class="field span2"><label for="siteName">Site name</label>
           <select id="siteName"><option value="">Select a zone first</option></select>
         </div>
         <div class="field span2" id="siteOtherWrap" style="display:none"><label for="siteOther">Other site name / code</label><input id="siteOther" type="text" placeholder="Type the site not in the list" autocomplete="off"></div>
+        <div class="field span2"><label for="sampleId">Sample ID</label><input id="sampleId" type="text" autocomplete="off"></div>
         <div class="field"><label for="siteType">Site type</label>
           <select id="siteType">
             <option value="">—</option><option>Closed manhole</option><option>Open drain</option><option>Nullah</option><option>Other</option>
@@ -220,17 +222,24 @@
     </div>
     <div class="kpis">
       <div class="kpi"><div class="kv" id="kToday">0</div><div class="kk">Samples today</div></div>
-      <div class="kpi"><div class="kv" id="kPos">0</div><div class="kk">qPCR positive</div></div>
-      <div class="kpi"><div class="kv" id="kPositivity">—</div><div class="kk">Positivity %</div></div>
-      <div class="kpi"><div class="kv" id="kPending">0</div><div class="kk">Lab pending</div></div>
+      <div class="kpi"><div class="kv" id="kTotal">0</div><div class="kk">Total samples</div></div>
+      <div class="kpi"><div class="kv" id="kPositivity">—</div><div class="kk">IS6110 +ve %</div></div>
+      <div class="kpi"><div class="kv" id="kIsPend">0</div><div class="kk">IS6110 pending</div></div>
+      <div class="kpi"><div class="kv" id="kRd9">—</div><div class="kk">RD9 detection %</div></div>
+      <div class="kpi"><div class="kv" id="kRdPend">0</div><div class="kk">RD9 pending</div></div>
     </div>
     <div class="card"><div class="head"><span class="n">📈</span><h2>Last 14 days</h2></div>
       <div id="dashTrend"></div>
-      <div class="hint" style="margin-top:6px"><span style="color:#12525f">■</span> samples &nbsp; <span style="color:#c0392b">■</span> positives</div>
+      <div class="hint" style="margin-top:6px">bars = samples &nbsp; <span style="color:#c0392b">━</span> IS6110+ &nbsp; <span style="color:#2a6f97">━</span> RD9+</div>
     </div>
-    <div class="card"><div class="head"><span class="n">🗺️</span><h2>Sampling map</h2></div>
+    <div class="card"><div class="head"><span class="n">🗺️</span><h2>Sampling map</h2>
+        <div style="margin-left:auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;align-self:center">
+          <button class="mapmode active" data-mode="is6110" id="mmIs">IS6110</button>
+          <button class="mapmode" data-mode="rd9" id="mmRd">RD9</button>
+        </div>
+      </div>
       <div id="dashMap" style="height:260px;border-radius:10px;overflow:hidden;background:#e8ece8"></div>
-      <div class="hint" style="margin-top:6px"><span style="color:#c0392b">●</span> positive &nbsp; <span style="color:#1f9d6b">●</span> negative &nbsp; <span style="color:#8a949a">●</span> pending</div>
+      <div class="hint" style="margin-top:6px" id="mapLegend"><span style="color:#c0392b">●</span> IS6110 positive &nbsp; <span style="color:#1f9d6b">●</span> negative &nbsp; <span style="color:#8a949a">●</span> not tested</div>
     </div>
     <div class="card"><div class="head"><span class="n">▦</span><h2>By Zone</h2></div><div id="dashArm"></div></div>
     <div class="card"><div class="head"><span class="n">▦</span><h2>Top sites</h2></div><div id="dashSites"></div></div>
@@ -327,22 +336,29 @@
     <div class="body">
       <div class="kv" id="dInfo"></div>
       <div class="card" style="margin:0">
-        <div class="head"><span class="n">🧪</span><h2>Lab results — MTB qPCR</h2></div>
+        <div class="head"><span class="n">🧪</span><h2>Lab results — MTB qPCR / dPCR</h2></div>
         <div class="grid">
           <div class="field span2"><label for="dLabId">Lab / accession ID</label><input id="dLabId" type="text" autocomplete="off"></div>
-          <div class="field"><label for="dTarget">Target gene</label>
-            <select id="dTarget"><option value="">—</option><option>IS6110</option><option>rpoB</option><option>hspX</option><option>16S rRNA</option><option>Other</option></select>
+
+          <div class="field span2"><div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--amber);border-bottom:1px solid var(--line);padding-bottom:3px">IS6110 &nbsp;<span style="font-weight:400;text-transform:none;color:var(--muted)">— MTB complex</span></div></div>
+          <div class="field"><label for="dIs6110Res">IS6110 result</label>
+            <select id="dIs6110Res"><option value="">Pending / not tested</option><option>Positive</option><option>Negative</option><option>Inconclusive</option></select>
           </div>
-          <div class="field"><label for="dResult">Result</label>
-            <select id="dResult"><option value="">Pending / not tested</option><option>Positive</option><option>Negative</option><option>Inconclusive</option></select>
+          <div class="field"><label for="dIs6110Ct">IS6110 Ct (qPCR)</label><input id="dIs6110Ct" type="number" step="0.01" inputmode="decimal" placeholder="e.g. 32.4"></div>
+          <div class="field span2"><label for="dIs6110Cp">IS6110 dPCR (copies/mL)</label><input id="dIs6110Cp" type="number" step="any" inputmode="decimal" placeholder="e.g. 1250"></div>
+
+          <div class="field span2"><div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--amber);border-bottom:1px solid var(--line);padding-bottom:3px">RD9 &nbsp;<span style="font-weight:400;text-transform:none;color:var(--muted)">— M. tuberculosis</span></div></div>
+          <div class="field"><label for="dRd9Res">RD9 result</label>
+            <select id="dRd9Res"><option value="">Pending / not tested</option><option>Positive</option><option>Negative</option><option>Inconclusive</option></select>
           </div>
-          <div class="field span2 ctwrap"><label for="dCt">qPCR Ct value</label><input id="dCt" type="number" step="0.01" inputmode="decimal" placeholder="e.g. 32.4">
-            <div class="ctnote" id="dCtNote">Lower Ct = higher target load. Leave blank if undetermined.</div>
-          </div>
+          <div class="field"><label for="dRd9Ct">RD9 Ct (qPCR)</label><input id="dRd9Ct" type="number" step="0.01" inputmode="decimal" placeholder="e.g. 34.1"></div>
+          <div class="field span2"><label for="dRd9Cp">RD9 dPCR (copies/mL)</label><input id="dRd9Cp" type="number" step="any" inputmode="decimal" placeholder="e.g. 480"></div>
+
           <div class="field"><label for="dLabDate">Date analysed</label><input id="dLabDate" type="date"></div>
           <div class="field"><label for="dAnalyst">Analyst</label><input id="dAnalyst" type="text" autocomplete="off"></div>
           <div class="field span2"><label for="dLabNotes">Lab notes</label><textarea id="dLabNotes" placeholder="Assay, kit, replicates, inhibition, internal control Ct…"></textarea></div>
         </div>
+        <p class="hint" style="margin-top:8px">Lower Ct = higher target load; dPCR gives absolute concentration (copies/mL). Fill whatever you have — blanks are fine.</p>
       </div>
     </div>
     <div class="foot"><button class="btn danger" id="dDelete" style="flex:0 0 auto">Delete</button><button class="btn primary" id="dSave">Save lab result</button></div>
@@ -2803,7 +2819,7 @@ try{window.qrcode=qrcode;}catch(e){}
       flowRateLps:(v>0&&d>0&&w>0)?+(v*(d/100)*(w/100)*1000).toFixed(2):null,
       waterTemp:numOrNull($("waterTemp").value), pH:numOrNull($("ph").value), turbidity:numOrNull($("turbidity").value),
       method:$("method").value, volume:numOrNull($("volume").value), collector:$("collector").value.trim(), notes:$("notes").value.trim(),
-      labSampleId:"", qpcrTarget:"", qpcrCt:null, qpcrResult:"", labDate:"", analyst:"", labNotes:""
+      labSampleId:"", labDate:"", analyst:"", labNotes:"", is6110Result:"", is6110Ct:null, is6110Copies:null, rd9Result:"", rd9Ct:null, rd9Copies:null
     };
     records.unshift(rec); await setJSON("mtb-samples",records);
     toast("Saved "+id); resetForm(); renderRecords(); renderStats(); renderSync();
@@ -2819,11 +2835,18 @@ try{window.qrcode=qrcode;}catch(e){}
 
   /* ---------- records list ---------- */
   function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function genePill(label,result,ct){
+    if(result==="Positive") return '<span class="pill pos">'+label+'+'+(ct!=null?' Ct'+ct:'')+'</span>';
+    if(result==="Negative") return '<span class="pill neg">'+label+'−</span>';
+    if(result==="Inconclusive") return '<span class="pill pend">'+label+' ?</span>';
+    return '';
+  }
   function resultPill(r){
+    var p=genePill('IS6110',r.is6110Result,r.is6110Ct)+genePill('RD9',r.rd9Result,r.rd9Ct);
+    if(p) return p;
     if(r.qpcrResult==="Positive") return '<span class="pill pos">POS'+(r.qpcrCt!=null?' · Ct '+r.qpcrCt:'')+'</span>';
     if(r.qpcrResult==="Negative") return '<span class="pill neg">NEG</span>';
-    if(r.qpcrResult==="Inconclusive") return '<span class="pill pend">INCONC</span>';
-    return '<span class="pill pend">qPCR pending</span>';
+    return '<span class="pill pend">lab pending</span>';
   }
   function renderRecords(){
     var el=$("recList");
@@ -2859,8 +2882,10 @@ try{window.qrcode=qrcode;}catch(e){}
       row("Flow",r.flowRateLps!=null?(r.flowRateLps+' L/s'):'—')+
       row("Weather",(r.airTemp!=null?r.airTemp+'°C':'—')+(r.humidity!=null?' · '+r.humidity+'% RH':''))+
       row("Method",esc(r.method||'—')+(r.volume?' · '+r.volume+' mL':''));
-    $("dLabId").value=r.labSampleId||""; $("dTarget").value=r.qpcrTarget||""; $("dCt").value=r.qpcrCt!=null?r.qpcrCt:"";
-    $("dResult").value=r.qpcrResult||""; $("dLabDate").value=r.labDate||""; $("dAnalyst").value=r.analyst||""; $("dLabNotes").value=r.labNotes||"";
+    $("dLabId").value=r.labSampleId||"";
+    $("dIs6110Res").value=r.is6110Result||""; $("dIs6110Ct").value=r.is6110Ct!=null?r.is6110Ct:""; $("dIs6110Cp").value=r.is6110Copies!=null?r.is6110Copies:"";
+    $("dRd9Res").value=r.rd9Result||""; $("dRd9Ct").value=r.rd9Ct!=null?r.rd9Ct:""; $("dRd9Cp").value=r.rd9Copies!=null?r.rd9Copies:"";
+    $("dLabDate").value=r.labDate||""; $("dAnalyst").value=r.analyst||""; $("dLabNotes").value=r.labNotes||"";
     $("detail").style.display="flex";
   }
   function row(k,v){ return '<b>'+k+'</b><span>'+v+'</span>'; }
@@ -2869,8 +2894,10 @@ try{window.qrcode=qrcode;}catch(e){}
   $("detail").addEventListener("click",function(e){ if(e.target===this) closeDetail(); });
   $("dSave").addEventListener("click",async function(){
     var r=recById(openId); if(!r) return;
-    r.labSampleId=$("dLabId").value.trim(); r.qpcrTarget=$("dTarget").value; r.qpcrCt=numOrNull($("dCt").value);
-    r.qpcrResult=$("dResult").value; r.labDate=$("dLabDate").value||""; r.analyst=$("dAnalyst").value.trim(); r.labNotes=$("dLabNotes").value.trim();
+    r.labSampleId=$("dLabId").value.trim();
+    r.is6110Result=$("dIs6110Res").value; r.is6110Ct=numOrNull($("dIs6110Ct").value); r.is6110Copies=numOrNull($("dIs6110Cp").value);
+    r.rd9Result=$("dRd9Res").value; r.rd9Ct=numOrNull($("dRd9Ct").value); r.rd9Copies=numOrNull($("dRd9Cp").value);
+    r.labDate=$("dLabDate").value||""; r.analyst=$("dAnalyst").value.trim(); r.labNotes=$("dLabNotes").value.trim();
     r.updatedAt=new Date().toISOString(); r.syncedAt=null;
     await setJSON("mtb-samples",records); closeDetail(); renderRecords(); renderStats(); renderSync(); toast("Lab result saved");
     if(config.auto!==false && config.url && config.key && isSignedIn() && navigator.onLine){ syncPush([r]).then(function(ok){ if(ok){renderRecords();renderStats();renderSync();} }); }
@@ -2886,7 +2913,7 @@ try{window.qrcode=qrcode;}catch(e){}
   function renderStats(){
     $("stTotal").textContent=records.length;
     var sites={},pop=0,pos=0;
-    records.forEach(function(r){ if(r.siteName) sites[r.siteName.toLowerCase()]=1; if(r.population) pop+=Number(r.population); if(r.qpcrResult==="Positive") pos++; });
+    records.forEach(function(r){ if(r.siteName) sites[r.siteName.toLowerCase()]=1; if(r.population) pop+=Number(r.population); if(is6110ResultOf(r)==="Positive") pos++; });
     $("stPos").textContent=pos; $("stSites").textContent=Object.keys(sites).length;
     $("stPop").textContent=pop>=1000?(pop/1000).toFixed(pop>=100000?0:1)+"k":pop;
     var pending=records.filter(isPending).length;
@@ -2903,7 +2930,7 @@ try{window.qrcode=qrcode;}catch(e){}
     ["flowSpeed","Flow_Speed_ms"],["flowDepth","Flow_Depth_cm"],["channelWidth","Channel_Width_cm"],["flowRateLps","Flow_Rate_Lps"],
     ["waterTemp","Water_Temp_C"],["pH","pH"],["turbidity","Turbidity_NTU"],
     ["method","Method"],["volume","Volume_mL"],["collector","Collector"],["notes","Notes"],
-    ["labSampleId","Lab_Sample_ID"],["qpcrTarget","qPCR_Target"],["qpcrCt","qPCR_Ct"],["qpcrResult","qPCR_Result"],
+    ["labSampleId","Lab_Sample_ID"],["is6110Result","IS6110_Result"],["is6110Ct","IS6110_Ct"],["is6110Copies","IS6110_dPCR_copies_mL"],["rd9Result","RD9_Result"],["rd9Ct","RD9_Ct"],["rd9Copies","RD9_dPCR_copies_mL"],
     ["labDate","Lab_Date"],["analyst","Analyst"],["labNotes","Lab_Notes"],["id","Record_UUID"]
   ];
   function csvCell(v){ if(v===null||v===undefined) return ""; v=String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
@@ -2987,10 +3014,10 @@ try{window.qrcode=qrcode;}catch(e){}
     ["flowSpeed","flow_speed_ms"],["flowDepth","flow_depth_cm"],["channelWidth","channel_width_cm"],["flowRateLps","flow_rate_lps"],
     ["waterTemp","water_temp_c"],["pH","ph"],["turbidity","turbidity_ntu"],
     ["method","method"],["volume","volume_ml"],["collector","collector"],["notes","notes"],
-    ["labSampleId","lab_sample_id"],["qpcrTarget","qpcr_target"],["qpcrCt","qpcr_ct"],["qpcrResult","qpcr_result"],
+    ["labSampleId","lab_sample_id"],["is6110Result","is6110_result"],["is6110Ct","is6110_ct"],["is6110Copies","is6110_copies_ml"],["rd9Result","rd9_result"],["rd9Ct","rd9_ct"],["rd9Copies","rd9_copies_ml"],
     ["labDate","lab_date"],["analyst","analyst"],["labNotes","lab_notes"],["deviceId","device_id"]
   ];
-  var NUMERIC={population:1,lat:1,lng:1,gpsAccuracy:1,altitude:1,airTemp:1,humidity:1,precip:1,windSpeed:1,flowSpeed:1,flowDepth:1,channelWidth:1,flowRateLps:1,waterTemp:1,pH:1,turbidity:1,volume:1,qpcrCt:1};
+  var NUMERIC={population:1,lat:1,lng:1,gpsAccuracy:1,altitude:1,airTemp:1,humidity:1,precip:1,windSpeed:1,flowSpeed:1,flowDepth:1,channelWidth:1,flowRateLps:1,waterTemp:1,pH:1,turbidity:1,volume:1,qpcrCt:1,is6110Ct:1,is6110Copies:1,rd9Ct:1,rd9Copies:1};
   var DATEISH={savedAt:1,updatedAt:1,fixTime:1,labDate:1};
   function toRow(rec){ var o={}; MAP.forEach(function(m){ var v=rec[m[0]]; if(NUMERIC[m[0]]){ v=(v===""||v==null||isNaN(v))?null:Number(v); } else if(DATEISH[m[0]]){ v=v?v:null; } else { v=(v===""||v==null)?null:v; } o[m[1]]=v; }); return o; }
   function fromRow(row){ var rec={}; MAP.forEach(function(m){ rec[m[0]]=row[m[1]]; }); if(rec.labDate&&rec.labDate.length>10) rec.labDate=rec.labDate.slice(0,10); rec.syncedAt=new Date().toISOString(); return rec; }
@@ -3126,44 +3153,76 @@ try{window.qrcode=qrcode;}catch(e){}
   }
   Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){ b.addEventListener("click",function(){ switchView(this.getAttribute("data-view")); }); });
   /* ---------- dashboard / stats ---------- */
-  var mapObj=null, mapMarkers=null;
+  var mapObj=null, mapMarkers=null, mapMode='is6110', mapFitted=false;
   function localDay(d){ var x=new Date(d); return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate()); }
   function setDashStatus(m){ $("dashStatus").textContent=m; }
+  function is6110ResultOf(r){ return r.is6110Result || r.qpcrResult || ''; }
+  function rd9ResultOf(r){ return r.rd9Result || ''; }
   function dashMetrics(){
-    var today=localDay(new Date()), tCount=0, pos=0, neg=0;
+    var today=localDay(new Date()), tCount=0, pos=0, neg=0, rpos=0, rneg=0, isPend=0, rdPend=0;
     records.forEach(function(r){
       if(localDay(r.savedAt)===today) tCount++;
-      if(r.qpcrResult==='Positive') pos++; else if(r.qpcrResult==='Negative') neg++;
+      var i=is6110ResultOf(r), rr=rd9ResultOf(r);
+      if(i==='Positive') pos++; else if(i==='Negative') neg++;
+      if(rr==='Positive') rpos++; else if(rr==='Negative') rneg++;
+      if(!i) isPend++;
+      if(!rr) rdPend++;
     });
-    var pend=records.filter(function(r){ return !r.qpcrResult; }).length;
-    var tested=pos+neg;
-    return { today:tCount, pos:pos, neg:neg, pend:pend, positivity: tested? Math.round(1000*pos/tested)/10 : null };
+    var tested=pos+neg, rtested=rpos+rneg;
+    return { today:tCount, total:records.length, pos:pos, neg:neg, isPend:isPend, rdPend:rdPend,
+      positivity: tested? Math.round(1000*pos/tested)/10 : null,
+      rd9pos:rpos, rd9detection: rtested? Math.round(1000*rpos/rtested)/10 : null };
   }
   function renderDashboard(){
     var m=dashMetrics();
-    $("kToday").textContent=m.today; $("kPos").textContent=m.pos;
-    $("kPositivity").textContent=(m.positivity==null?'—':m.positivity+'%'); $("kPending").textContent=m.pend;
+    $("kToday").textContent=m.today; $("kTotal").textContent=m.total;
+    $("kPositivity").textContent=(m.positivity==null?'—':m.positivity+'%'); $("kIsPend").textContent=m.isPend;
+    $("kRd9").textContent=(m.rd9detection==null?'—':m.rd9detection+'%'); $("kRdPend").textContent=m.rdPend;
     $("dashTrend").innerHTML=trendSVG();
-    $("dashArm").innerHTML=groupTable('zone',['Zone','Samples','Pos','Pos %']);
+    $("dashArm").innerHTML=zoneTable();
     $("dashSites").innerHTML=siteTable();
     renderMap();
   }
+  function zoneTable(){
+    var g={};
+    records.forEach(function(r){
+      var k=r.zone||'—'; if(!g[k]) g[k]={n:0,ip:0,it:0,rp:0,rt:0}; g[k].n++;
+      var i=is6110ResultOf(r), rr=rd9ResultOf(r);
+      if(i==='Positive'){g[k].ip++;g[k].it++;} else if(i==='Negative') g[k].it++;
+      if(rr==='Positive'){g[k].rp++;g[k].rt++;} else if(rr==='Negative') g[k].rt++;
+    });
+    var keys=Object.keys(g).sort(); if(!keys.length) return '<div class="hint">No data yet.</div>';
+    var rows=keys.map(function(k){ var x=g[k];
+      var ip=x.it?(Math.round(1000*x.ip/x.it)/10+'%'):'—';
+      var rp=x.rt?(Math.round(1000*x.rp/x.rt)/10+'%'):'—';
+      return '<tr><td>'+esc(k)+'</td><td>'+x.n+'</td><td>'+ip+'</td><td>'+rp+'</td></tr>';
+    }).join('');
+    return '<table class="dtable"><thead><tr><th>Zone</th><th>Samples</th><th>IS6110 %</th><th>RD9 %</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
   function trendSVG(){
     var today=new Date(); today.setHours(0,0,0,0);
-    var days=[]; for(var i=13;i>=0;i--){ var d=new Date(today); d.setDate(d.getDate()-i); days.push({key:localDay(d),d:new Date(d),n:0,p:0}); }
+    var days=[]; for(var i=13;i>=0;i--){ var d=new Date(today); d.setDate(d.getDate()-i); days.push({key:localDay(d),d:new Date(d),n:0,ip:0,rp:0}); }
     var idx={}; days.forEach(function(x){idx[x.key]=x;});
-    records.forEach(function(r){ var k=localDay(r.savedAt); if(idx[k]){ idx[k].n++; if(r.qpcrResult==='Positive') idx[k].p++; } });
+    records.forEach(function(r){ var k=localDay(r.savedAt); if(idx[k]){ idx[k].n++; if(is6110ResultOf(r)==='Positive') idx[k].ip++; if(rd9ResultOf(r)==='Positive') idx[k].rp++; } });
     var maxN=1; days.forEach(function(x){ if(x.n>maxN) maxN=x.n; });
-    var W=320,H=130,padX=14,padT=10,padB=22,plotH=H-padT-padB,gap=(W-padX*2)/14,bw=gap*0.62,bars='';
+    var W=320,H=140,padX=16,padT=10,padB=24,plotH=H-padT-padB,gap=(W-padX*2)/13,bw=(W-padX*2)/14*0.5;
+    function X(i){ return padX+i*gap; }
+    function Y(v){ return padT+plotH*(1-v/maxN); }
+    var bars='',lineI='',lineR='',dots='';
     days.forEach(function(x,i){
-      var xx=padX+i*gap+(gap-bw)/2, h=plotH*(x.n/maxN), y=padT+plotH-h;
-      bars+='<rect x="'+xx.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2" fill="#12525f"/>';
-      if(x.p>0){ var ph=plotH*(x.p/maxN); bars+='<rect x="'+xx.toFixed(1)+'" y="'+(padT+plotH-ph).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+ph.toFixed(1)+'" rx="2" fill="#c0392b"/>'; }
+      var cx=X(i), h=plotH*(x.n/maxN);
+      bars+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+(padT+plotH-h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1.5" fill="#dbe3e1"/>';
+      lineI+=(i?' L':'M')+cx.toFixed(1)+' '+Y(x.ip).toFixed(1);
+      lineR+=(i?' L':'M')+cx.toFixed(1)+' '+Y(x.rp).toFixed(1);
+      dots+='<circle cx="'+cx.toFixed(1)+'" cy="'+Y(x.ip).toFixed(1)+'" r="2" fill="#c0392b"/>'+
+            '<circle cx="'+cx.toFixed(1)+'" cy="'+Y(x.rp).toFixed(1)+'" r="2" fill="#2a6f97"/>';
     });
     function lbl(d){ return d.getDate()+'/'+(d.getMonth()+1); }
-    var labels='<text x="'+padX+'" y="'+(H-6)+'" font-size="9" fill="#5c6f74" font-family="monospace">'+lbl(days[0].d)+'</text>'+
-               '<text x="'+(W-padX)+'" y="'+(H-6)+'" font-size="9" fill="#5c6f74" font-family="monospace" text-anchor="end">'+lbl(days[13].d)+'</text>';
-    return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-height:150px">'+bars+labels+'</svg>';
+    var labels='<text x="'+padX+'" y="'+(H-7)+'" font-size="9" fill="#5c6f74" font-family="monospace">'+lbl(days[0].d)+'</text>'+
+               '<text x="'+(W-padX)+'" y="'+(H-7)+'" font-size="9" fill="#5c6f74" font-family="monospace" text-anchor="end">'+lbl(days[13].d)+'</text>';
+    return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-height:160px">'+bars+
+      '<path d="'+lineI+'" fill="none" stroke="#c0392b" stroke-width="1.8"/>'+
+      '<path d="'+lineR+'" fill="none" stroke="#2a6f97" stroke-width="1.8"/>'+dots+labels+'</svg>';
   }
   function groupTable(field,headers){
     var g={}; records.forEach(function(r){ var k=r[field]||'—'; if(!g[k]) g[k]={n:0,p:0,t:0}; g[k].n++; if(r.qpcrResult==='Positive'){g[k].p++;g[k].t++;} else if(r.qpcrResult==='Negative') g[k].t++; });
@@ -3172,7 +3231,7 @@ try{window.qrcode=qrcode;}catch(e){}
     return '<table class="dtable"><thead><tr>'+headers.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table>';
   }
   function siteTable(){
-    var g={}; records.forEach(function(r){ var k=r.siteName||'—'; if(!g[k]) g[k]={n:0,p:0}; g[k].n++; if(r.qpcrResult==='Positive') g[k].p++; });
+    var g={}; records.forEach(function(r){ var k=r.siteName||'—'; if(!g[k]) g[k]={n:0,p:0}; g[k].n++; if(is6110ResultOf(r)==='Positive') g[k].p++; });
     var keys=Object.keys(g).sort(function(a,b){return g[b].n-g[a].n;}).slice(0,8);
     if(!keys.length) return '<div class="hint">No data yet.</div>';
     var rows=keys.map(function(k){ return '<tr><td>'+esc(k)+'</td><td>'+g[k].n+'</td><td>'+g[k].p+'</td></tr>'; }).join('');
@@ -3202,12 +3261,13 @@ try{window.qrcode=qrcode;}catch(e){}
       mapMarkers.clearLayers();
       var bounds=[];
       pts.forEach(function(r){
-        var color=r.qpcrResult==='Positive'?'#c0392b':(r.qpcrResult==='Negative'?'#1f9d6b':'#8a949a');
+        var res=(mapMode==='rd9')?rd9ResultOf(r):is6110ResultOf(r);
+        var color=res==='Positive'?'#c0392b':(res==='Negative'?'#1f9d6b':'#8a949a');
         L.circleMarker([r.lat,r.lng],{radius:7,color:'#fff',weight:1.5,fillColor:color,fillOpacity:.9})
-          .bindPopup('<b>'+esc(r.sampleId)+'</b><br>'+esc(r.siteName||'')+'<br>'+esc(r.qpcrResult||'pending')).addTo(mapMarkers);
+          .bindPopup('<b>'+esc(r.sampleId)+'</b><br>'+esc(r.siteName||'')+'<br>IS6110 '+esc(is6110ResultOf(r)||'pending')+' · RD9 '+esc(rd9ResultOf(r)||'—')).addTo(mapMarkers);
         bounds.push([r.lat,r.lng]);
       });
-      if(bounds.length>1){ try{ mapObj.fitBounds(bounds,{padding:[30,30]}); }catch(e){} }
+      if(!mapFitted && bounds.length>1){ try{ mapObj.fitBounds(bounds,{padding:[30,30]}); mapFitted=true; }catch(e){} }
       setTimeout(function(){ try{ mapObj.invalidateSize(); }catch(e){} },120);
     });
   }
@@ -3223,6 +3283,16 @@ try{window.qrcode=qrcode;}catch(e){}
     }
   }
   $("btnDashRefresh").addEventListener("click", refreshDashboard);
+  Array.prototype.forEach.call(document.querySelectorAll(".mapmode"),function(b){
+    b.addEventListener("click",function(){
+      mapMode=this.getAttribute("data-mode");
+      $("mmIs").classList.toggle("active",mapMode==="is6110");
+      $("mmRd").classList.toggle("active",mapMode==="rd9");
+      var g=(mapMode==="rd9")?"RD9":"IS6110";
+      $("mapLegend").innerHTML='<span style="color:#c0392b">●</span> '+g+' positive &nbsp; <span style="color:#1f9d6b">●</span> negative &nbsp; <span style="color:#8a949a">●</span> not tested';
+      renderMap();
+    });
+  });
 
   window.switchView=switchView;
 })();
