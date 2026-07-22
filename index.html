@@ -2852,7 +2852,7 @@ try{window.qrcode=qrcode;}catch(e){}
     var el=$("recList");
     if(!records.length){ el.innerHTML='<div class="empty"><div class="big">◎</div><p><b>No samples yet</b></p><p>Capture a GPS fix on the Collect tab to log your first wastewater sample.</p></div>'; return; }
     el.innerHTML=records.map(function(r){
-      var when=new Date(r.savedAt).toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      var when=istStamp(r.savedAt).slice(0,16)+" IST";
       var synced=r.syncedAt && (!r.updatedAt || r.syncedAt>=r.updatedAt);
       return '<div class="rec" data-id="'+r.id+'">'+
         '<div class="top"><span class="id">'+esc(r.sampleId)+'</span><span class="badges">'+(r.zone?'<span class="pill" style="background:#dde7ea;color:#0b3a44">'+esc(r.zone)+'</span>':'')+'<span class="pill type">'+esc(r.siteType)+'</span>'+resultPill(r)+'</span></div>'+
@@ -2877,7 +2877,7 @@ try{window.qrcode=qrcode;}catch(e){}
       row("Zone",esc(r.zone||r.arm||'—'))+
       row("Site",esc(r.siteName||'—')+' · '+esc(r.siteType))+
       row("Coords",'<a href="'+maps+'" target="_blank" rel="noopener">'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</a> (±'+Math.round(r.gpsAccuracy)+'m)')+
-      row("Collected",new Date(r.savedAt).toLocaleString())+
+      row("Collected",istStamp(r.savedAt)+" IST")+
       row("Population",r.population?Number(r.population).toLocaleString():'—')+
       row("Flow",r.flowRateLps!=null?(r.flowRateLps+' L/s'):'—')+
       row("Weather",(r.airTemp!=null?r.airTemp+'°C':'—')+(r.humidity!=null?' · '+r.humidity+'% RH':''))+
@@ -2922,8 +2922,26 @@ try{window.qrcode=qrcode;}catch(e){}
   function isPending(r){ return !(r.syncedAt && (!r.updatedAt || r.syncedAt>=r.updatedAt)); }
 
   /* ---------- CSV / JSON ---------- */
+  /* Indian Standard Time (UTC+5:30). Timestamps are stored as absolute
+     instants (UTC); these render the same instant in IST for reading. */
+  function istParts(iso){
+    if(!iso) return null;
+    var d=new Date(iso); if(isNaN(d.getTime())) return null;
+    var x=new Date(d.getTime()+(5*60+30)*60000);
+    return { date:x.getUTCFullYear()+'-'+pad(x.getUTCMonth()+1)+'-'+pad(x.getUTCDate()),
+             time:pad(x.getUTCHours())+':'+pad(x.getUTCMinutes())+':'+pad(x.getUTCSeconds()) };
+  }
+  function istStamp(iso){ var p=istParts(iso); return p? (p.date+' '+p.time) : ''; }
+  function istDate(iso){ var p=istParts(iso); return p? p.date : ''; }
+  function istTime(iso){ var p=istParts(iso); return p? p.time : ''; }
+
   var COLS=[
-    ["sampleId","Sample_ID"],["arm","Arm"],["savedAt","Saved_At"],["fixTime","GPS_Fix_Time"],
+    ["sampleId","Sample_ID"],["arm","Arm"],
+    [null,"Collected_Date_IST",function(r){return istDate(r.savedAt);}],
+    [null,"Collected_Time_IST",function(r){return istTime(r.savedAt);}],
+    [null,"Collected_IST",function(r){return istStamp(r.savedAt);}],
+    [null,"GPS_Fix_IST",function(r){return istStamp(r.fixTime);}],
+    ["savedAt","Saved_At_UTC"],["fixTime","GPS_Fix_Time_UTC"],
     ["siteName","Site_Name"],["siteType","Site_Type"],["zone","Zone"],["population","Catchment_Population"],
     ["lat","Latitude"],["lng","Longitude"],["gpsAccuracy","GPS_Accuracy_m"],["altitude","Altitude_m"],
     ["airTemp","Air_Temp_C"],["humidity","Humidity_pct"],["precip","Precip_mm"],["windSpeed","Wind_kmh"],
@@ -2937,7 +2955,7 @@ try{window.qrcode=qrcode;}catch(e){}
   $("btnCsv").addEventListener("click",function(){
     if(!records.length){ toast("Nothing to export",true); return; }
     var head=COLS.map(function(c){return c[1];}).join(",");
-    var rows=records.map(function(r){ return COLS.map(function(c){return csvCell(r[c[0]]);}).join(","); });
+    var rows=records.map(function(r){ return COLS.map(function(c){ return csvCell(c[2]? c[2](r) : r[c[0]]); }).join(","); });
     download("MTB_samples_"+todayStamp()+".csv","text/csv;charset=utf-8",[head].concat(rows).join("\n")); toast("CSV exported ("+records.length+" rows)");
   });
   $("btnJson").addEventListener("click",function(){ if(!records.length){ toast("Nothing to back up",true); return; } download("MTB_backup_"+todayStamp()+".json","application/json",JSON.stringify(records,null,2)); toast("Backup saved"); });
@@ -3154,7 +3172,7 @@ try{window.qrcode=qrcode;}catch(e){}
   Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){ b.addEventListener("click",function(){ switchView(this.getAttribute("data-view")); }); });
   /* ---------- dashboard / stats ---------- */
   var mapObj=null, mapMarkers=null, mapMode='is6110', mapFitted=false;
-  function localDay(d){ var x=new Date(d); return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate()); }
+  function localDay(d){ return istDate(typeof d==='string'? d : new Date(d).toISOString()); }  // IST-based day
   function setDashStatus(m){ $("dashStatus").textContent=m; }
   function is6110ResultOf(r){ return r.is6110Result || r.qpcrResult || ''; }
   function rd9ResultOf(r){ return r.rd9Result || ''; }
