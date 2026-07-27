@@ -339,6 +339,7 @@
         <div class="head"><span class="n">🧪</span><h2>Lab results — MTB qPCR / dPCR</h2></div>
         <div class="grid">
           <div class="field span2"><label for="dLabId">Lab / accession ID</label><input id="dLabId" type="text" autocomplete="off"></div>
+          <div class="field span2"><label for="dDna">DNA concentration (ng/µL)</label><input id="dDna" type="number" step="any" inputmode="decimal" placeholder="e.g. 12.5"></div>
 
           <div class="field span2"><div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--amber);border-bottom:1px solid var(--line);padding-bottom:3px">IS6110 &nbsp;<span style="font-weight:400;text-transform:none;color:var(--muted)">— MTB complex</span></div></div>
           <div class="field"><label for="dIs6110Res">IS6110 result</label>
@@ -2819,7 +2820,7 @@ try{window.qrcode=qrcode;}catch(e){}
       flowRateLps:(v>0&&d>0&&w>0)?+(v*(d/100)*(w/100)*1000).toFixed(2):null,
       waterTemp:numOrNull($("waterTemp").value), pH:numOrNull($("ph").value), turbidity:numOrNull($("turbidity").value),
       method:$("method").value, volume:numOrNull($("volume").value), collector:$("collector").value.trim(), notes:$("notes").value.trim(),
-      labSampleId:"", labDate:"", analyst:"", labNotes:"", is6110Result:"", is6110Ct:null, is6110Copies:null, rd9Result:"", rd9Ct:null, rd9Copies:null
+      labSampleId:"", dnaConc:null, labDate:"", analyst:"", labNotes:"", is6110Result:"", is6110Ct:null, is6110Copies:null, rd9Result:"", rd9Ct:null, rd9Copies:null
     };
     records.unshift(rec); await setJSON("mtb-samples",records);
     toast("Saved "+id); resetForm(); renderRecords(); renderStats(); renderSync();
@@ -2883,6 +2884,7 @@ try{window.qrcode=qrcode;}catch(e){}
       row("Weather",(r.airTemp!=null?r.airTemp+'°C':'—')+(r.humidity!=null?' · '+r.humidity+'% RH':''))+
       row("Method",esc(r.method||'—')+(r.volume?' · '+r.volume+' mL':''));
     $("dLabId").value=r.labSampleId||"";
+    $("dDna").value=r.dnaConc!=null?r.dnaConc:"";
     $("dIs6110Res").value=r.is6110Result||""; $("dIs6110Ct").value=r.is6110Ct!=null?r.is6110Ct:""; $("dIs6110Cp").value=r.is6110Copies!=null?r.is6110Copies:"";
     $("dRd9Res").value=r.rd9Result||""; $("dRd9Ct").value=r.rd9Ct!=null?r.rd9Ct:""; $("dRd9Cp").value=r.rd9Copies!=null?r.rd9Copies:"";
     $("dLabDate").value=r.labDate||""; $("dAnalyst").value=r.analyst||""; $("dLabNotes").value=r.labNotes||"";
@@ -2895,6 +2897,7 @@ try{window.qrcode=qrcode;}catch(e){}
   $("dSave").addEventListener("click",async function(){
     var r=recById(openId); if(!r) return;
     r.labSampleId=$("dLabId").value.trim();
+    r.dnaConc=numOrNull($("dDna").value);
     r.is6110Result=$("dIs6110Res").value; r.is6110Ct=numOrNull($("dIs6110Ct").value); r.is6110Copies=numOrNull($("dIs6110Cp").value);
     r.rd9Result=$("dRd9Res").value; r.rd9Ct=numOrNull($("dRd9Ct").value); r.rd9Copies=numOrNull($("dRd9Cp").value);
     r.labDate=$("dLabDate").value||""; r.analyst=$("dAnalyst").value.trim(); r.labNotes=$("dLabNotes").value.trim();
@@ -2948,7 +2951,7 @@ try{window.qrcode=qrcode;}catch(e){}
     ["flowSpeed","Flow_Speed_ms"],["flowDepth","Flow_Depth_cm"],["channelWidth","Channel_Width_cm"],["flowRateLps","Flow_Rate_Lps"],
     ["waterTemp","Water_Temp_C"],["pH","pH"],["turbidity","Turbidity_NTU"],
     ["method","Method"],["volume","Volume_mL"],["collector","Collector"],["notes","Notes"],
-    ["labSampleId","Lab_Sample_ID"],["is6110Result","IS6110_Result"],["is6110Ct","IS6110_Ct"],["is6110Copies","IS6110_dPCR_copies_mL"],["rd9Result","RD9_Result"],["rd9Ct","RD9_Ct"],["rd9Copies","RD9_dPCR_copies_mL"],
+    ["labSampleId","Lab_Sample_ID"],["dnaConc","DNA_conc_ng_uL"],["is6110Result","IS6110_Result"],["is6110Ct","IS6110_Ct"],["is6110Copies","IS6110_dPCR_copies_mL"],["rd9Result","RD9_Result"],["rd9Ct","RD9_Ct"],["rd9Copies","RD9_dPCR_copies_mL"],
     ["labDate","Lab_Date"],["analyst","Analyst"],["labNotes","Lab_Notes"],["id","Record_UUID"]
   ];
   function csvCell(v){ if(v===null||v===undefined) return ""; v=String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
@@ -3032,10 +3035,10 @@ try{window.qrcode=qrcode;}catch(e){}
     ["flowSpeed","flow_speed_ms"],["flowDepth","flow_depth_cm"],["channelWidth","channel_width_cm"],["flowRateLps","flow_rate_lps"],
     ["waterTemp","water_temp_c"],["pH","ph"],["turbidity","turbidity_ntu"],
     ["method","method"],["volume","volume_ml"],["collector","collector"],["notes","notes"],
-    ["labSampleId","lab_sample_id"],["is6110Result","is6110_result"],["is6110Ct","is6110_ct"],["is6110Copies","is6110_copies_ml"],["rd9Result","rd9_result"],["rd9Ct","rd9_ct"],["rd9Copies","rd9_copies_ml"],
+    ["labSampleId","lab_sample_id"],["dnaConc","dna_conc_ng_ul"],["is6110Result","is6110_result"],["is6110Ct","is6110_ct"],["is6110Copies","is6110_copies_ml"],["rd9Result","rd9_result"],["rd9Ct","rd9_ct"],["rd9Copies","rd9_copies_ml"],
     ["labDate","lab_date"],["analyst","analyst"],["labNotes","lab_notes"],["deviceId","device_id"]
   ];
-  var NUMERIC={population:1,lat:1,lng:1,gpsAccuracy:1,altitude:1,airTemp:1,humidity:1,precip:1,windSpeed:1,flowSpeed:1,flowDepth:1,channelWidth:1,flowRateLps:1,waterTemp:1,pH:1,turbidity:1,volume:1,qpcrCt:1,is6110Ct:1,is6110Copies:1,rd9Ct:1,rd9Copies:1};
+  var NUMERIC={population:1,lat:1,lng:1,gpsAccuracy:1,altitude:1,airTemp:1,humidity:1,precip:1,windSpeed:1,flowSpeed:1,flowDepth:1,channelWidth:1,flowRateLps:1,waterTemp:1,pH:1,turbidity:1,volume:1,qpcrCt:1,dnaConc:1,is6110Ct:1,is6110Copies:1,rd9Ct:1,rd9Copies:1};
   var DATEISH={savedAt:1,updatedAt:1,fixTime:1,labDate:1};
   function toRow(rec){ var o={}; MAP.forEach(function(m){ var v=rec[m[0]]; if(NUMERIC[m[0]]){ v=(v===""||v==null||isNaN(v))?null:Number(v); } else if(DATEISH[m[0]]){ v=v?v:null; } else { v=(v===""||v==null)?null:v; } o[m[1]]=v; }); return o; }
   function fromRow(row){ var rec={}; MAP.forEach(function(m){ rec[m[0]]=row[m[1]]; }); if(rec.labDate&&rec.labDate.length>10) rec.labDate=rec.labDate.slice(0,10); rec.syncedAt=new Date().toISOString(); return rec; }
